@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+azure-core
+azure-search-documents
+openai
+python-dotenv
+azure-storage-blob
+azure-ai-documentintelligence
+langchain-text-splitters
