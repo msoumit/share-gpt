@@ -1,0 +1,30 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "e8fc15ab-97fc-49c9-b477-3dedc91f8577",
+  "alias": "ChatBotWebPart",
+  "componentType": "WebPart",
+
+  // The "*" signifies that the version should be taken from the package.json
+  "version": "*",
+  "manifestVersion": 2,
+
+  // If true, the component can only be installed on sites where Custom Script is allowed.
+  // Components that allow authors to embed arbitrary script code should set this to true.
+  // https://support.office.com/en-us/article/Turn-scripting-capabilities-on-or-off-1f2c515f-5d7e-448a-9fd7-835da935584f
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "supportsThemeVariants": true,
+  
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
+    "group": { "default": "Advanced" },
+    "title": { "default": "ChatBot" },
+    "description": { "default": "ChatBot description" },
+    "officeFabricIconFontName": "Page",
+    "properties": {
+      "description": "ChatBot",
+      "chatAPI": "http://127.0.0.1:8000",
+      "sharePointOnlineClientId": "0b188a5c-5774-4b88-893a-415baeb08114"
+    }
+  }]
+}
