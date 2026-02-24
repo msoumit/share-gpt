@@ -43,6 +43,15 @@ def create_chat_thread_item(item: dict) -> ChatThread:
     )
     return ChatThread(**created)
 
+def delete_chat_thread_item(item_id, user_email) -> None:
+    
+    delete_chat_message_items(item_id, user_email)
+    
+    container.delete_item(
+        item=item_id,
+        partition_key=user_email
+    )
+
 def read_chat_message_items(user_email, id, type) -> List[ChatMessage]:
     
     query = "SELECT * FROM c  WHERE c.threadId = @id AND c.type=@type ORDER BY c.createdAt ASC"
@@ -60,3 +69,28 @@ def read_chat_message_items(user_email, id, type) -> List[ChatMessage]:
     messages = [ChatMessage(**item) for item in items]
     
     return messages
+
+def delete_chat_message_items(thread_id, user_email) -> None:
+    
+    query = "SELECT * FROM c  WHERE c.threadId = @threadId AND c.type = @type"
+    parameters = [
+        {"name": "@threadId", "value": thread_id},
+        {"name": "@type", "value": "CHAT_MESSAGE"},
+    ]
+    items = container.query_items(
+        query=query,
+        parameters=parameters,
+        partition_key=user_email,
+        enable_cross_partition_query=False
+    )
+    
+    messages = list(items)
+    
+    for message in messages:
+        container.delete_item(
+            item=message['id'],
+            partition_key=user_email
+        )
+
+
+    

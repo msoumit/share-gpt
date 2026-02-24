@@ -117,16 +117,18 @@ export const deleteChatThread = async(id: string, email: string, context: WebPar
       userEmail: email.toLowerCase(),
       id: id
     };
-    const clientId = globalConfig.sharePointOnlineClientId;
-    const endpointUri = `${globalConfig.chatAPI}/deleteItemChatHistory`;
+    const endpointUri = `${globalConfig.chatAPI}/delete-chat-threads`;
+    
     const headers: Headers = new Headers();
     headers.append("Content-type", "application/json");
-    const options: ISPHttpClientOptions = {
+    
+    const options: IHttpClientOptions = {
       body: JSON.stringify(body),
       headers: headers
     };
-    const client: AadHttpClient = await context.aadHttpClientFactory.getClient(clientId);
-    const response = await client.post(endpointUri, AadHttpClient.configurations.v1, options);
+    
+    const response = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    
     if(!response.ok){
       const errorResponse = await response.json() as ErrorModel;
       const error: string = errorResponse.error;

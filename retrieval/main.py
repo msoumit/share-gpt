@@ -1,11 +1,12 @@
 from fastapi import FastAPI
-from fastapi import Request
+from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 import json
 from helpers.search import hybrid_semantic_vector_search
 from helpers.common import build_context_from_hits
 from helpers.open_ai import generate_llm_response, guardrail_validate
-from helpers.cosmos import read_chat_thread_items, create_chat_thread_item, read_chat_message_items
+from helpers.cosmos import read_chat_thread_items, create_chat_thread_item, delete_chat_thread_item
+from helpers.cosmos import read_chat_message_items
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -57,7 +58,28 @@ async def create_chat_threads(request: Request):
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"error": "failed to create chat threads"}
+            content={"error": "failed to create chat thread"}
+        )
+    
+@app.post('/delete-chat-threads')
+async def delete_chat_threads(request: Request):
+    try:
+        body = await request.json()
+                
+        user_email = body.get('userEmail')
+        thread_id = body.get('id')
+
+        if not user_email or not thread_id:
+            return JSONResponse(status_code=400, content={"error": "userEmail and id are required"})
+
+        delete_chat_thread_item(thread_id, user_email)
+        
+        return Response(status_code=204)
+
+    except Exception as e: 
+        return JSONResponse(
+            status_code=500,
+            content={"error": "failed to delete chat thread"}
         )
     
 @app.post('/read-chat-messages')
