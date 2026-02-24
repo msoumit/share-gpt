@@ -6,8 +6,7 @@ import { AadHttpClient, ISPHttpClientOptions, HttpClient, HttpClientResponse, IH
 export const getChatThreadsByUser = async(email:string, context: WebPartContext, globalConfig: ConfigModel): Promise<ChatThreadModel[]>  => {
   try {
     
-    const endpointUri = `${globalConfig.chatAPI}/sample-test`;
-    // const endpointUri = `${globalConfig.chatAPI}/readItemChatHistory`;
+    const endpointUri = `${globalConfig.chatAPI}/read-chat-threads`;
 
     const body = {
       userEmail: email.toLowerCase(),
@@ -31,30 +30,8 @@ export const getChatThreadsByUser = async(email:string, context: WebPartContext,
     }
 
     const data = await response.json();
-    console.log(data)
-    // Dummy payload injection
-    const dummyChatThreads: ChatThreadModel[] = [
-      {
-        createdAt: new Date("2026-02-20T10:15:00Z"),
-        id: "thread-001",
-        isDeleted: false,
-        name: "Project Discussion",
-        type: "CHAT_THREAD",
-        userEmail: "soumit@example.com",
-        userName: "Soumit Mukherjee"
-      },
-      {
-        createdAt: new Date("2026-02-21T14:30:00Z"),
-        id: "thread-002",
-        isDeleted: false,
-        name: "RAG Architecture Review",
-        type: "CHAT_THREAD",
-        userEmail: "soumit@example.com",
-        userName: "Soumit Mukherjee"
-      }
-    ];
     
-    return dummyChatThreads as ChatThreadModel[];
+    return data as ChatThreadModel[];
   } 
   catch (error) {
     const e = error as Error;
@@ -76,16 +53,18 @@ export const createChatThread = async(user: UserModel, context: WebPartContext, 
       isDeleted: false,
       type: "CHAT_THREAD"
     };
-    const clientId = globalConfig.sharePointOnlineClientId;
-    const endpointUri = `${globalConfig.chatAPI}/addItemChatHistory`;
+    const endpointUri = `${globalConfig.chatAPI}/create-chat-threads`;
+
     const headers: Headers = new Headers();
     headers.append("Content-type", "application/json");
-    const options: ISPHttpClientOptions = {
+
+    const options: IHttpClientOptions = {
       body: JSON.stringify(body),
       headers: headers
     };
-    const client: AadHttpClient = await context.aadHttpClientFactory.getClient(clientId);
-    const response = await client.post(endpointUri, AadHttpClient.configurations.v1, options);
+
+    const response: HttpClientResponse = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
       const error: string = errorResponse.error;

@@ -4,3 +4,4 @@ azure-core
 azure-search-documents
 openai
 python-dotenv
+azure-cosmos

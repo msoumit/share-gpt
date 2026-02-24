@@ -312,7 +312,7 @@ export const ChatContent: React.FC = () => {
         }
         <div className={styles.ChatContent}>
           <div className={styles.chatMessagesContainer} ref={chatHistoryContainerRef}>
-            {loading && <Spinner style={{ marginTop: 'auto' }} />}
+            {loading && <Spinner className={[styles.spinner, styles.spinnerBottom].join(' ')} />}
             {!loading && chatMessages.length > 0 && (
               <>
                 {
@@ -327,18 +327,11 @@ export const ChatContent: React.FC = () => {
                     }
                     return(
                       <React.Fragment key={message.id}>
-                        {/* {message.role === "assistant" && message.content === "" ? (
-                            <Spinner style={{ marginTop:'auto', alignSelf:'end'}} />
-                          ) :  */}
-                          {/* ( */}
                             <div className={styles.card} role={message.role}>
                               <div className={styles.container}>
-                                {/*<div className={[styles.gb,styles.userName].join(' ')}>
-                                  {message.role === "user" ? message.userName : "Hubert"}
-                                </div>*/}
                                 <p>{convertNewlinesToBreaks(mainContent)}</p>
                                 {message.role === "assistant" && message.content === "" && (
-                                  <Spinner style={{ margin:'10px auto', alignSelf:'center'}} />
+                                  <Spinner className={[styles.spinner, styles.spinnerCentered].join(' ')} />
                                 )}
                                 {message.role === "assistant" && citations.length > 0 && (
                                   <div className={styles.citation}>

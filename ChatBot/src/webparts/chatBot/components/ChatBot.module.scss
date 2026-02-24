@@ -247,13 +247,27 @@
 }
 
 .chatMessagesContainer {
-flex-grow: 1;
-min-height: 0;
-overflow-y: auto;
-overflow-x: hidden;
-display: flex;
-flex-direction: column;
-position: relative;
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.spinner {
+  --colorBrandStroke1: var(--cb-color-primary);
+  --colorBrandStroke2Contrast: var(--cb-color-soft-bg);
+}
+
+
+.spinnerBottom {
+  margin-top: auto;
+}
+
+.spinnerCentered {
+  margin: 10px auto;
 }
 
 .card {

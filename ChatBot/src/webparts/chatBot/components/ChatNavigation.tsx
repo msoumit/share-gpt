@@ -15,7 +15,7 @@ export const ChatNavigation: React.FC = () => {
   const [threadToDelete, setThreadToDelete] = React.useState("");
 
   if (loading) {
-    return <Spinner style={{ margin: 10 }} />;
+    return <Spinner className={[styles.spinner, styles.spinnerCentered].join(' ')} />;
   }
 
   if (error) {
