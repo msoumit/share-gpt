@@ -122,7 +122,6 @@ export const ChatContent: React.FC = () => {
       createdAt: new Date(),
       context: "",
       id: "placeholderReplyId",  // generate a proper id here
-      isDeleted: false,
       role: "assistant",
       threadId: id?id:newThreadId as string,
       type: "CHAT_MESSAGE",
@@ -163,14 +162,13 @@ export const ChatContent: React.FC = () => {
         setIsSubmitting(true);
         if (chatMessages.length === 0) {
           const name = chat.slice(0, 100);
-          modifyChatThread(id, currentUser.email, name, false);  // eslint-disable-line @typescript-eslint/no-floating-promises
+          modifyChatThread(id, currentUser.email, name);  // eslint-disable-line @typescript-eslint/no-floating-promises
         }
         const newMessage: ChatMessageModel = {
           content: chat,
           createdAt: new Date(),
           context: "",
           id: "newMessageId",
-          isDeleted: false,
           role: "user",
           threadId: id,
           type: "CHAT_MESSAGE",
@@ -201,14 +199,13 @@ export const ChatContent: React.FC = () => {
             setIsSubmitting(true);
             if (chatMessages.length === 0) {
               const name = chat.slice(0, 100);
-              modifyChatThread(newThreadId, currentUser.email, name, false);  // eslint-disable-line @typescript-eslint/no-floating-promises
+              modifyChatThread(newThreadId, currentUser.email, name);  // eslint-disable-line @typescript-eslint/no-floating-promises
             }
             const newMessage: ChatMessageModel = {
               content: chat,
               createdAt: new Date(),
               context: "",
               id: "newMessageId",
-              isDeleted: false,
               role: "user",
               threadId: newThreadId,
               type: "CHAT_MESSAGE",

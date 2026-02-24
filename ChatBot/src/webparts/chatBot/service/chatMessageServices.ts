@@ -7,7 +7,6 @@ export const getChatMessagesById = async(user:UserModel, id:string, context: Web
     const body = {
       userEmail: user.email,
       threadId: id,
-      isDeleted: false,
       type: "CHAT_MESSAGE"  
     };
 

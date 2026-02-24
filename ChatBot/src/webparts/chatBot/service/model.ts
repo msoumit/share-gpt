@@ -1,7 +1,6 @@
 export interface ChatThreadModel {
   createdAt: Date;
   id: string
-  isDeleted: boolean;
   name: string;
   type: 'CHAT_THREAD';
   userEmail: string;
@@ -14,7 +13,6 @@ export interface ChatMessageModel {
   userName: string;
   createdAt: Date;
   type: 'CHAT_MESSAGE';
-  isDeleted: boolean;
   content: string;
   role: "user" | "assistant";
   threadId: string;

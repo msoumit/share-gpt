@@ -50,7 +50,6 @@ export const createChatThread = async(user: UserModel, context: WebPartContext, 
       userEmail: user.email.toLowerCase(),
       id: id,
       createdAt: new Date(),
-      isDeleted: false,
       type: "CHAT_THREAD"
     };
     const endpointUri = `${globalConfig.chatAPI}/create-chat-threads`;
@@ -80,13 +79,12 @@ export const createChatThread = async(user: UserModel, context: WebPartContext, 
   }
 };
 
-export const updateChatThread = async(id: string, email:string, name:string, isDeleted: boolean, context: WebPartContext, globalConfig: ConfigModel): Promise<ChatThreadModel> => {
+export const updateChatThread = async(id: string, email:string, name:string, context: WebPartContext, globalConfig: ConfigModel): Promise<ChatThreadModel> => {
   try {
     const body = {
       id: id,
       userEmail: email.toLowerCase(),
-      name: name,
-      isDeleted: isDeleted
+      name: name
     };
     const clientId = globalConfig.sharePointOnlineClientId;
     const endpointUri = `${globalConfig.chatAPI}/updateItemChatHistory`;

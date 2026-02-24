@@ -6,7 +6,6 @@ class ChatThread(BaseModel):
     name: str
     userName: str
     createdAt: str
-    isDeleted: bool
     type: str
 
 class ChatMessage(BaseModel):
@@ -15,7 +14,6 @@ class ChatMessage(BaseModel):
     userName: str
     createdAt: str
     type: str
-    isDeleted: bool
     content: str
     role: str
     threadId: str

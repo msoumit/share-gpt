@@ -9,7 +9,7 @@ interface ChatThreadContextProps {
   loading: boolean;
   error: string | undefined;
   addChatThread: () => Promise<string>;
-  modifyChatThread: (id: string, email: string, name: string, isDeleted: boolean) => Promise<void>;
+  modifyChatThread: (id: string, email: string, name: string) => Promise<void>;
   removeChatThread: (id: string) => Promise<void>;
   showChatNavigation: boolean;
   setShowChatNavigation: (show: boolean) => void;
@@ -62,10 +62,10 @@ export const ChatThreadProvider: React.FC<ChatThreadProviderProps> = ({ children
     }
   };
 
-  const modifyChatThread = async(id: string, email:string, name:string, isDeleted: boolean): Promise<void> => {
+  const modifyChatThread = async(id: string, email:string, name:string): Promise<void> => {
     try {
       setLoading(true);
-      const updatedChatThread = await updateChatThread(id, email, name, isDeleted, context, globalConfig);
+      const updatedChatThread = await updateChatThread(id, email, name, context, globalConfig);
       setChatThread((prevThreads) => {
         return prevThreads.map(chatThread =>
             chatThread.id === updatedChatThread.id ? updatedChatThread : chatThread

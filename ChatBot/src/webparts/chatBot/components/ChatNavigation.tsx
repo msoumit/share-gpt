@@ -33,7 +33,7 @@ export const ChatNavigation: React.FC = () => {
       await removeChatThread(threadToDelete);
       const isCurrentPathDeleted = currentPath === `/chatcontent/${threadToDelete}`;
       if (isCurrentPathDeleted) {
-        navigate('/tab');
+        navigate('/chatcontent/', { replace: true })
       }
     } 
     catch (err) {
