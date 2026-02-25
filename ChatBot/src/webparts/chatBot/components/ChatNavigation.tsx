@@ -30,6 +30,7 @@ export const ChatNavigation: React.FC = () => {
   const confirmDelete = async (): Promise<void> => {
     try {
       const currentPath = location.pathname;
+      setShowDeleteConfirmation(false);
       await removeChatThread(threadToDelete);
       const isCurrentPathDeleted = currentPath === `/chatcontent/${threadToDelete}`;
       if (isCurrentPathDeleted) {
