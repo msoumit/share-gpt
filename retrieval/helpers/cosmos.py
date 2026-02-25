@@ -43,6 +43,20 @@ def create_chat_thread_item(item: dict) -> ChatThread:
     )
     return ChatThread(**created)
 
+def update_chat_thread_item(thread_id, user_email, name) -> ChatThread:
+    
+    item = container.read_item(
+        item=thread_id,
+        partition_key=user_email
+    )
+    
+    item["name"] = name
+    
+    response = container.replace_item(item=thread_id, body=item)
+    updated = ChatThread(**response)
+    
+    return updated
+
 def delete_chat_thread_item(item_id, user_email) -> None:
     
     delete_chat_message_items(item_id, user_email)

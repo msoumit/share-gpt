@@ -86,21 +86,24 @@ export const updateChatThread = async(id: string, email:string, name:string, con
       userEmail: email.toLowerCase(),
       name: name
     };
-    const clientId = globalConfig.sharePointOnlineClientId;
-    const endpointUri = `${globalConfig.chatAPI}/updateItemChatHistory`;
+    const endpointUri = `${globalConfig.chatAPI}/update-chat-threads`;
+    
     const headers: Headers = new Headers();
     headers.append("Content-type", "application/json");
-    const options: ISPHttpClientOptions = {
+    
+    const options: IHttpClientOptions = {
       body: JSON.stringify(body),
       headers: headers
     };
-    const client: AadHttpClient = await context.aadHttpClientFactory.getClient(clientId);
-    const response = await client.post(endpointUri, AadHttpClient.configurations.v1, options);
+    
+    const response = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
       const error: string = errorResponse.error;
       throw new Error(`Failed to update chat thread. Reason: ${error}`);
     }
+    
     const data = await response.json();
     return data as ChatThreadModel;
   } 
