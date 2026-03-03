@@ -17,6 +17,8 @@ export interface ChatMessageModel {
   role: "user" | "assistant";
   threadId: string;
   context: string;
+  citations?: CitationModel[];
+  guardrail?: GuardrailModel | null;
 }
 
 export interface UserModel {
@@ -25,8 +27,16 @@ export interface UserModel {
 }
 
 export interface CitationModel {
-  name: string;
-  fileBlobUrl: string;
+  title: string;
+  sourceUrl: string;
+  chunkId: string;
+}
+
+export interface GuardrailModel {
+  verdict: string;
+  confidence: number;
+  issues: unknown[];
+  notes: string | null;
 }
 
 export interface ErrorModel {

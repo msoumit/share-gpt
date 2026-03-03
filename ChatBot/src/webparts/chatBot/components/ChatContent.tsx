@@ -269,35 +269,6 @@ export const ChatContent: React.FC = () => {
     ));
   }
 
-  const parseForCitation = (content: string): { mainContent: string, citations: CitationModel[] } => {
-    const citationPattern = /{% citation items=(\[.*?\]) ?\/?%}/g;
-  
-    let mainContent = content;
-    let citationItems: CitationModel[] = [];
-    let match: RegExpExecArray | null;
-  
-    while ((match = citationPattern.exec(content)) !== null) {
-      const citationItemsString = match[1];
-      mainContent = mainContent.replace(match[0], '').trim();
-      try {
-        const items = JSON.parse(citationItemsString) as CitationModel[];
-        citationItems = citationItems.concat(items);
-      } 
-      catch (error) {
-        console.error("Error parsing citation items:", error);
-      }
-    }
-    
-    const uniqueCitations = citationItems.reduce((unique, item) => {
-      if (!unique.some(citation => citation.fileBlobUrl === item.fileBlobUrl)) {
-        unique.push(item);
-      }
-      return unique;
-    }, [] as CitationModel[]);
-  
-    return { mainContent, citations: uniqueCitations };
-  }
-
   return (
     <div className={styles.MainChatContainer}>
       {location.pathname.indexOf("/chatcontent/") !== -1 &&
@@ -314,14 +285,8 @@ export const ChatContent: React.FC = () => {
               <>
                 {
                   chatMessages.map((message) => {
-                    let mainContent: string = "", citations: CitationModel[] = [];
-                    if(message.content.indexOf('{% citation items') > 0 && message.content.indexOf('%}') > 0 ){
-                      ({ mainContent, citations } = parseForCitation(message.content));
-                    }
-                    else{
-                      mainContent = message.content; 
-                      citations = [];
-                    }
+                    const mainContent: string = message.content;
+                    const citations: CitationModel[] = message.citations || [];
                     return(
                       <React.Fragment key={message.id}>
                             <div className={styles.card} role={message.role}>
@@ -333,23 +298,26 @@ export const ChatContent: React.FC = () => {
                                 {message.role === "assistant" && citations.length > 0 && (
                                   <div className={styles.citation}>
                                     {citations.map((citation: CitationModel, index) => {
-                                      if (citation.fileBlobUrl && (citation.fileBlobUrl.indexOf("file filebloburl") >= 0 || citation.fileBlobUrl.indexOf("N/A") >= 0)) {
+                                      if (!citation.sourceUrl || citation.sourceUrl.indexOf("N/A") >= 0) {
                                         return null; // Skip rendering this citation if the condition is met
                                       }
                                       return(
                                         <React.Fragment key={index}>
-                                          <a href={citation.fileBlobUrl} target='_blank' data-interception="off" rel='noopener noreferrer'>
-                                            {citation.name}
+                                          <a href={citation.sourceUrl} target='_blank' data-interception="off" rel='noopener noreferrer'>
+                                            {citation.title}
                                           </a>
                                         </React.Fragment>
                                       );
                                     })}
                                   </div>
                                 )}
+                                {message.role === "assistant" && message.guardrail && (
+                                  <div className={styles.citation}>
+                                    Verdict: {message.guardrail.verdict} | Confidence: {message.guardrail.confidence}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          {/* ) */}
-                        {/* } */}
                       </React.Fragment>
                     )
                   })
