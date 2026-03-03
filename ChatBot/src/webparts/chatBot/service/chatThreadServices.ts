@@ -1,7 +1,7 @@
 import { ChatThreadModel, UserModel, ErrorModel, ConfigModel } from "./model";
 import { uniqueId } from "./common";
 import { WebPartContext } from "@microsoft/sp-webpart-base";
-import { AadHttpClient, ISPHttpClientOptions, HttpClient, HttpClientResponse, IHttpClientOptions } from '@microsoft/sp-http';
+import { HttpClient, HttpClientResponse, IHttpClientOptions } from '@microsoft/sp-http';
 
 export const getChatThreadsByUser = async(email:string, context: WebPartContext, globalConfig: ConfigModel): Promise<ChatThreadModel[]>  => {
   try {
@@ -96,7 +96,7 @@ export const updateChatThread = async(id: string, email:string, name:string, con
       headers: headers
     };
     
-    const response = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    const response: HttpClientResponse = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
     
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
@@ -130,7 +130,7 @@ export const deleteChatThread = async(id: string, email: string, context: WebPar
       headers: headers
     };
     
-    const response = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    const response: HttpClientResponse = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
     
     if(!response.ok){
       const errorResponse = await response.json() as ErrorModel;

@@ -1,6 +1,6 @@
 import { WebPartContext } from "@microsoft/sp-webpart-base";
 import { ChatMessageModel, ConfigModel, ErrorModel, UserModel } from "./model";
-import { AadHttpClient, ISPHttpClientOptions, HttpClient, HttpClientResponse, IHttpClientOptions } from '@microsoft/sp-http';
+import { HttpClient, HttpClientResponse, IHttpClientOptions } from '@microsoft/sp-http';
 
 export const getChatMessagesById = async(user:UserModel, id:string, context: WebPartContext, globalConfig: ConfigModel): Promise<ChatMessageModel[]> => {
   try {
@@ -20,7 +20,7 @@ export const getChatMessagesById = async(user:UserModel, id:string, context: Web
       headers: headers
     };
 
-    const response = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    const response: HttpClientResponse = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
     
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
@@ -45,24 +45,27 @@ export const getChatMessagesReplyFromAssistant = async (
   globalConfig: ConfigModel
 ): Promise<void> => {
   try {
-    const clientId = globalConfig.sharePointOnlineClientId;
-    const endpointUri = `${globalConfig.chatAPI}/getResponseFromAssistant`;
+    const endpointUri = `${globalConfig.chatAPI}/get-response`;
     const body = {
       ...newMessage
     };
+    
     const headers: Headers = new Headers();
     headers.append("Content-type", "application/json");
-    const options: ISPHttpClientOptions = {
+    
+    const options: IHttpClientOptions = {
       body: JSON.stringify(body),
       headers: headers
     };
-    const client: AadHttpClient = await context.aadHttpClientFactory.getClient(clientId);
-    const response: any = await client.post(endpointUri, AadHttpClient.configurations.v1, options);
+
+    const response: any = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
       const error: string = errorResponse.error;
       throw new Error(`Failed to fetch reply from assistant. Reason: ${error}`);
     }
+    
     const reader = response.body?.getReader();
     const decoder = new TextDecoder('utf-8');
     let isDone = false;
