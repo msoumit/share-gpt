@@ -3,7 +3,8 @@ import os
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from typing import List, Dict, Any
-from helpers.common import batched, build_source_url_filter
+from helpers.common import batched, build_source_url_filter, build_index_payload
+import httpx
 
 load_dotenv()
 
@@ -91,3 +92,16 @@ def delete_all_chunks_from_index(page_size: int = 1000):
         "status": "completed",
         "documents_deleted": total_deleted,
     }
+
+async def create_search_index():
+    api_version = "2024-07-01"
+    payload = build_index_payload()
+    index_name = payload["name"]
+
+    url = f"{SEARCH_ENDPOINT.rstrip('/')}/indexes/{index_name}?api-version={api_version}"
+    headers = {"Content-Type": "application/json", "api-key": SEARCH_KEY}
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.put(url, headers=headers, json=payload)
+
+    return r.json()

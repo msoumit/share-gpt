@@ -27,7 +27,8 @@ def get_blobs():
         blob_inputs.append({
             "filename": blob.name.split("/")[-1],
             "file_bytes": file_bytes,
-            "source_url": blob_client.url
+            "source_url": blob_client.url,
+            "blob_url": blob_client.url
         })
     
     return blob_inputs

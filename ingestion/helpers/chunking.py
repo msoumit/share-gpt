@@ -10,10 +10,17 @@ import uuid
 
 load_dotenv()
 
-def generate_chunks(filename: str, file_bytes: bytes, source_url: Optional[str] = None) -> List[Dict[str, Any]]:
+def generate_chunks(filename: str, 
+    file_bytes: bytes, 
+    source_url: Optional[str] = None, 
+    blob_url: Optional[str] = None
+) -> List[Dict[str, Any]]:
 
     if not source_url:
         source_url = filename
+    
+    if not blob_url:
+        blob_url = filename
 
     content_type = guess_content_type(filename)
     result_dict = analyze_layout(file_bytes, content_type)
@@ -56,6 +63,7 @@ def generate_chunks(filename: str, file_bytes: bytes, source_url: Optional[str] 
                     "raw_table_content": block.get("raw_table_content", ""),
                     "title": title,
                     "source_url": source_url,
+                    "blob_url": blob_url,
                     "chunk": chunk_text,
                     "chunk_id": generate_chunk_id(filename, chunk_counter),
                 }
@@ -73,7 +81,8 @@ def generate_chunks_for_files(files: List[Dict[str, Any]]) -> List[Dict[str, Any
             generate_chunks(
                 filename=f["filename"],
                 file_bytes=f["file_bytes"],
-                source_url=f.get("source_url")
+                source_url=f.get("source_url"),
+                blob_url=f.get("blob_url")
             )
         )
     return all_items
