@@ -371,6 +371,58 @@ div[class*="card_"][role="assistant"] {
   }
 }
 
+.guardrailMeta {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cb-border-assistant-strong);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.verdictBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.verdictGrounded {
+  background: #e7f6ec;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.verdictPartial {
+  background: #fff7e6;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.verdictNotGrounded {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.confidenceChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  background: var(--cb-color-soft-bg);
+  color: var(--cb-color-primary-active);
+  border: 1px solid var(--cb-border-primary-medium);
+}
+
 .ChatIntro {
   display: flex;
   width: 100%;

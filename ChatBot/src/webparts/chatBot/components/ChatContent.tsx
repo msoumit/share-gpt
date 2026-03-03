@@ -312,8 +312,13 @@ export const ChatContent: React.FC = () => {
                                   </div>
                                 )}
                                 {message.role === "assistant" && message.guardrail && (
-                                  <div className={styles.citation}>
-                                    Verdict: {message.guardrail.verdict} | Confidence: {message.guardrail.confidence}
+                                  <div className={styles.guardrailMeta}>
+                                    <span className={`${styles.verdictBadge} ${message.guardrail.verdict === "grounded" ? styles.verdictGrounded : message.guardrail.verdict === "partially_grounded" ? styles.verdictPartial : styles.verdictNotGrounded}`}>
+                                      Verdict: {message.guardrail.verdict}
+                                    </span>
+                                    <span className={styles.confidenceChip}>
+                                      Confidence: {message.guardrail.confidence}
+                                    </span>
                                   </div>
                                 )}
                               </div>
