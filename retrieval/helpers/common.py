@@ -6,6 +6,7 @@ def build_context_from_hits(hits, max_chunks=5):
     for i, h in enumerate(hits[:max_chunks], 1):
         title = h.get("title", "unknown")
         source_url = h.get("source_url", "unknown")
+        blob_url = h.get("blob_url", "unknown")
         kind = h.get("kind", "unknown")
         chunk_id = h.get("chunk_id", "unknown")
         chunk = h.get("chunk", "")
@@ -13,6 +14,7 @@ def build_context_from_hits(hits, max_chunks=5):
             f"[{i}]\n"
             f"title={title}\n"
             f"source_url={source_url}\n"
+            f"blob_url={blob_url}\n"
             f"kind={kind}\n"
             f"chunk_id={chunk_id}\n"
             f"content:\n{chunk} \n"
