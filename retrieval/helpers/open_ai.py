@@ -39,7 +39,7 @@ def generate_llm_response(context: str, prompt: str):
             }
         ],
         temperature=0.1,
-        max_completion_tokens=500
+        max_completion_tokens=1500
     )
     answer = response.choices[0].message.content
     parsed_answer = json.loads(answer)
@@ -55,7 +55,7 @@ def guardrail_validate(context: str, prompt: str, rag_answer: dict):
             {"role": "user", "content": validation_prompt}
         ],
         temperature=0.0,
-        max_completion_tokens=800
+        max_completion_tokens=2500
     )
     validation_answer = validation_response.choices[0].message.content
     validation_json = json.loads(validation_answer)
