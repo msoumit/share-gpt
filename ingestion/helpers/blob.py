@@ -15,7 +15,7 @@ def get_blobs():
     blob_inputs = []
 
     # List all blobs inside container
-    for blob in container_client.list_blobs():
+    for blob in container_client.list_blobs(include=["metadata"]):
 
         # Skip folders (if virtual directory exists)
         if blob.name.endswith("/"):
@@ -24,10 +24,12 @@ def get_blobs():
         blob_client = container_client.get_blob_client(blob.name)
         file_bytes = blob_client.download_blob().readall()
 
+        metadata_source_url = (blob.metadata or {}).get("source_url")
+
         blob_inputs.append({
             "filename": blob.name.split("/")[-1],
             "file_bytes": file_bytes,
-            "source_url": blob_client.url,
+            "source_url": metadata_source_url,
             "blob_url": blob_client.url
         })
     
