@@ -255,10 +255,40 @@ export const ChatContent: React.FC = () => {
     }
   }
 
-  const convertNewlinesToBreaks = (text: string): React.ReactNode => {
+  const renderTextWithBasicFormatting = (text: string): React.ReactNode => {
+    const renderInlineFormatting = (line: string): React.ReactNode[] => {
+      const nodes: React.ReactNode[] = [];
+      const pattern = /(\*\*[^*]+\*\*|__[^_]+__|\*[^*\n]+\*|_[^_\n]+_)/g;
+
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(line)) !== null) {
+        if (match.index > lastIndex) {
+          nodes.push(line.slice(lastIndex, match.index));
+        }
+
+        const token = match[0];
+        if ((token.startsWith("**") && token.endsWith("**")) || (token.startsWith("__") && token.endsWith("__"))) {
+          nodes.push(<strong key={`b-${match.index}`}>{token.slice(2, -2)}</strong>);
+        } else if ((token.startsWith("*") && token.endsWith("*")) || (token.startsWith("_") && token.endsWith("_"))) {
+          nodes.push(<em key={`i-${match.index}`}>{token.slice(1, -1)}</em>);
+        } else {
+          nodes.push(token);
+        }
+
+        lastIndex = pattern.lastIndex;
+      }
+
+      if (lastIndex < line.length) {
+        nodes.push(line.slice(lastIndex));
+      }
+
+      return nodes;
+    };
+
     return text.split('\n').map((line, index) => (
       <React.Fragment key={index}>
-        {line}
+        {renderInlineFormatting(line)}
         <br />
       </React.Fragment>
     ));
@@ -298,7 +328,7 @@ export const ChatContent: React.FC = () => {
                       <React.Fragment key={message.id}>
                             <div className={styles.card} role={message.role}>
                               <div className={styles.container}>
-                                <p>{convertNewlinesToBreaks(mainContent)}</p>
+                                <p>{renderTextWithBasicFormatting(mainContent)}</p>
                                 {message.role === "assistant" && message.content === "" && (
                                   <Spinner className={[styles.spinner, styles.spinnerCentered].join(' ')} />
                                 )}
