@@ -3,6 +3,8 @@ import os
 from typing import List
 from azure.cosmos import CosmosClient
 from helpers.models import ChatThread, ChatMessage
+from datetime import datetime, timezone
+import uuid
 
 load_dotenv()
 
@@ -84,8 +86,31 @@ def read_chat_message_items(user_email, id, type) -> List[ChatMessage]:
     
     return messages
 
-def create_chat_message_item(item: dict):
-    container.create_item(body=item)
+def create_chat_message_items(user_obj: dict, assistant_obj: dict, context: str) -> None:
+    current_time_utc = datetime.now(timezone.utc).isoformat()[:-9] + 'Z'
+    user_message_id = str(uuid.uuid4())
+    user_obj["id"] = user_message_id
+    user_obj["createdAt"] = current_time_utc
+    user_obj["citations"] = []
+    user_obj["guardrail"] = None
+    container.create_item(body=user_obj)
+
+    current_time_utc = datetime.now(timezone.utc).isoformat()[:-9] + 'Z'
+    assistant_reply_id = str(uuid.uuid4())
+    assistant_reply_data = {
+        "id": assistant_reply_id,
+        "userEmail": user_obj.get("userEmail"),
+        "userName": user_obj.get("userName"),
+        "createdAt": current_time_utc,
+        "type": "CHAT_MESSAGE",
+        "content": assistant_obj.get("answer"),
+        "role": "assistant",
+        "threadId": user_obj.get("threadId"),
+        "context": context,
+        "citations": assistant_obj.get("citations"),
+        "guardrail": assistant_obj.get("guardrail")
+    }
+    container.create_item(body=assistant_reply_data)
 
 def delete_chat_message_items(thread_id, user_email) -> None:
     
