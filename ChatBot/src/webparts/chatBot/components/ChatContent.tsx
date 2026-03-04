@@ -288,12 +288,44 @@ export const ChatContent: React.FC = () => {
       return nodes;
     };
 
-    return text.split('\n').map((line, index) => (
-      <React.Fragment key={index}>
-        {renderInlineFormatting(line)}
-        <br />
-      </React.Fragment>
-    ));
+    const lines = (text || "").split('\n');
+    const blocks: React.ReactNode[] = [];
+    let listItems: string[] = [];
+
+    const flushList = (): void => {
+      if (listItems.length === 0) {
+        return;
+      }
+      blocks.push(
+        <ul key={`ul-${blocks.length}`}>
+          {listItems.map((item, idx) => (
+            <li key={`li-${idx}`}>{renderInlineFormatting(item)}</li>
+          ))}
+        </ul>
+      );
+      listItems = [];
+    };
+
+    lines.forEach((line, index) => {
+      const listMatch = line.match(/^\s*[-*]\s+(.+)$/);
+      if (listMatch) {
+        listItems.push(listMatch[1]);
+        return;
+      }
+
+      flushList();
+
+      blocks.push(
+        <React.Fragment key={`line-${index}`}>
+          {renderInlineFormatting(line)}
+          <br />
+        </React.Fragment>
+      );
+    });
+
+    flushList();
+
+    return blocks;
   }
 
   return (
