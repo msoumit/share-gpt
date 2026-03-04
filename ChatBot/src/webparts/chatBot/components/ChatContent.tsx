@@ -270,9 +270,11 @@ export const ChatContent: React.FC = () => {
         const token = match[0];
         if ((token.startsWith("**") && token.endsWith("**")) || (token.startsWith("__") && token.endsWith("__"))) {
           nodes.push(<strong key={`b-${match.index}`}>{token.slice(2, -2)}</strong>);
-        } else if ((token.startsWith("*") && token.endsWith("*")) || (token.startsWith("_") && token.endsWith("_"))) {
+        } 
+        else if ((token.startsWith("*") && token.endsWith("*")) || (token.startsWith("_") && token.endsWith("_"))) {
           nodes.push(<em key={`i-${match.index}`}>{token.slice(1, -1)}</em>);
-        } else {
+        } 
+        else {
           nodes.push(token);
         }
 
