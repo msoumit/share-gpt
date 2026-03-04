@@ -1,19 +1,7 @@
-import { customAlphabet } from "nanoid";
 import { HeadersType } from "../service/model";
+import { v4 } from 'uuid';
 
 export const uniqueId = ():string => {
-  const alphabet =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  const nanoid = customAlphabet(alphabet, 36);
-  return nanoid();
+  const uuid = v4()
+  return uuid;
 }
-
-export const getHeaders = async(isLocalEnvironment: boolean): Promise<HeadersType> => {
-  const headers: HeadersType = {
-    'Content-Type': 'application/json'
-  };
-  if (!isLocalEnvironment) {
-    headers['Ocp-Apim-Subscription-Key'] = 'db17101241344da98c90e697d6a3c823';
-  }
-  return headers;
-};
