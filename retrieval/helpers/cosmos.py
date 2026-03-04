@@ -87,6 +87,17 @@ def read_chat_message_items(user_email, id, type) -> List[ChatMessage]:
     return messages
 
 def create_chat_message_items(user_obj: dict, assistant_obj: dict, context: str) -> None:
+    citations = assistant_obj.get("citations") or []
+    normalized_citations = []
+    for citation in citations:
+        if not isinstance(citation, dict):
+            continue
+        normalized_citations.append({
+            "title": citation.get("title", ""),
+            "sourceUrl": citation.get("sourceUrl", citation.get("source_url", "")),
+            "chunkId": citation.get("chunkId", citation.get("chunk_id", ""))
+        })
+
     current_time_utc = datetime.now(timezone.utc).isoformat()[:-9] + 'Z'
     user_message_id = str(uuid.uuid4())
     user_obj["id"] = user_message_id
@@ -107,7 +118,7 @@ def create_chat_message_items(user_obj: dict, assistant_obj: dict, context: str)
         "role": "assistant",
         "threadId": user_obj.get("threadId"),
         "context": context,
-        "citations": assistant_obj.get("citations"),
+        "citations": normalized_citations,
         "guardrail": assistant_obj.get("guardrail")
     }
     container.create_item(body=assistant_reply_data)

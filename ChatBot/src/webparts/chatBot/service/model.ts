@@ -39,6 +39,12 @@ export interface GuardrailModel {
   notes: string | null;
 }
 
+export interface AssistantValidatedResponse {
+  answer: string;
+  citations: CitationModel[];
+  guardrail: GuardrailModel | null;
+}
+
 export interface ErrorModel {
   error: string;
 }

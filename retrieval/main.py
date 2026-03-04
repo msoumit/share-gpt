@@ -125,6 +125,7 @@ async def read_chat_messages(request: Request):
         return chat_messages
 
     except Exception as e:
+        print(str(e))
         return JSONResponse(
             status_code=500,
             content={"error": "failed to read chat messages"}
@@ -135,7 +136,7 @@ async def read_chat_messages(request: Request):
 async def get_response(request: Request):
     
     body = await request.json()
-    prompt = body.get("prompt")
+    prompt = body.get("content")
 
     print("Performing hybrid search against search index....")
     hits = hybrid_semantic_vector_search(prompt, k=5)
@@ -149,6 +150,7 @@ async def get_response(request: Request):
     print("Performing guardrail validation for hallucination check....")
     validated_response = guardrail_validate(context=context, prompt=prompt, rag_answer=rag_answer)
 
+    print("Creating chat messages for user and assistant into Cosmos DB....")
     create_chat_message_items(body, validated_response, context)
 
     return validated_response

@@ -9,7 +9,7 @@ import { GlobalActions } from './GlobalActions';
 import { useChatThreadContext } from './Context/ChatThreadContext';
 import { ChatIntroduction } from './ChatIntroduction';
 import { Textarea } from "@fluentui/react-components";
-import { ChatMessageModel, CitationModel } from '../service/model';
+import { AssistantValidatedResponse, ChatMessageModel, CitationModel } from '../service/model';
 import { useGlobalContext } from './Context/GlobalContext';
 import styles from './ChatBot.module.scss';
 import { Send32Filled } from "@fluentui/react-icons";
@@ -134,14 +134,16 @@ export const ChatContent: React.FC = () => {
       placeholderReply
     ]);
 
-    const handleStreamedMessage = (message: string): void => {
+    const handleStreamedMessage = (message: AssistantValidatedResponse): void => {
       setChatMessages(prevMessages => {
         const lastMessageIndex = prevMessages.length - 1;
         const updatedMessages = [...prevMessages];
         if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
           updatedMessages[lastMessageIndex] = {
             ...updatedMessages[lastMessageIndex],
-            content: updatedMessages[lastMessageIndex].content + message
+            content: message.answer || "",
+            citations: message.citations || [],
+            guardrail: message.guardrail || null
           };
         }
         return updatedMessages;
@@ -287,6 +289,18 @@ export const ChatContent: React.FC = () => {
                   chatMessages.map((message) => {
                     const mainContent: string = message.content;
                     const citations: CitationModel[] = message.citations || [];
+                    const uniqueCitations: CitationModel[] = citations.reduce((acc: CitationModel[], current: CitationModel) => {
+                      if (!current.sourceUrl) {
+                        return acc;
+                      }
+
+                      const exists = acc.some((c) => c.sourceUrl === current.sourceUrl);
+                      if (!exists) {
+                        acc.push(current);
+                      }
+
+                      return acc;
+                    }, []);
                     return(
                       <React.Fragment key={message.id}>
                             <div className={styles.card} role={message.role}>
@@ -295,9 +309,9 @@ export const ChatContent: React.FC = () => {
                                 {message.role === "assistant" && message.content === "" && (
                                   <Spinner className={[styles.spinner, styles.spinnerCentered].join(' ')} />
                                 )}
-                                {message.role === "assistant" && citations.length > 0 && (
+                                {message.role === "assistant" && uniqueCitations.length > 0 && (
                                   <div className={styles.citation}>
-                                    {citations.map((citation: CitationModel, index) => {
+                                    {uniqueCitations.map((citation: CitationModel, index) => {
                                       if (!citation.sourceUrl || citation.sourceUrl.indexOf("N/A") >= 0) {
                                         return null; // Skip rendering this citation if the condition is met
                                       }

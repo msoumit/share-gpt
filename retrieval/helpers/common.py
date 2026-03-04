@@ -61,6 +61,19 @@ def compute_verdict(confidence: float, claims: list) -> str:
     return "not_grounded"
 
 def build_final_response(rag_answer: dict, validation_json: dict) -> dict:
+    raw_citations = rag_answer.get("citations", [])
+    citations = []
+    for citation in raw_citations:
+        if not isinstance(citation, dict):
+            continue
+        citations.append(
+            {
+                "title": citation.get("title", ""),
+                "sourceUrl": citation.get("sourceUrl", citation.get("source_url", "")),
+                "chunkId": citation.get("chunkId", citation.get("chunk_id", "")),
+            }
+        )
+
     unsupported_claims = [
         {
             "claim": c["claim"],
@@ -73,7 +86,7 @@ def build_final_response(rag_answer: dict, validation_json: dict) -> dict:
 
     return {
         "answer": rag_answer.get("answer"),
-        "citations": rag_answer.get("citations", []),
+        "citations": citations,
         "guardrail": {
             "verdict": validation_json.get("verdict"),
             "confidence": validation_json.get("confidence"),

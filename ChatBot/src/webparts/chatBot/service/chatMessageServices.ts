@@ -1,5 +1,5 @@
 import { WebPartContext } from "@microsoft/sp-webpart-base";
-import { ChatMessageModel, ConfigModel, ErrorModel, UserModel } from "./model";
+import { AssistantValidatedResponse, ChatMessageModel, ConfigModel, ErrorModel, UserModel } from "./model";
 import { HttpClient, HttpClientResponse, IHttpClientOptions } from '@microsoft/sp-http';
 
 export const getChatMessagesById = async(user:UserModel, id:string, context: WebPartContext, globalConfig: ConfigModel): Promise<ChatMessageModel[]> => {
@@ -39,7 +39,7 @@ export const getChatMessagesById = async(user:UserModel, id:string, context: Web
 
 export const getChatMessagesReplyFromAssistant = async (
   newMessage: ChatMessageModel, 
-  onMessage: (message: string) => void, 
+  onMessage: (message: AssistantValidatedResponse) => void, 
   onError: (error: Error) => void, 
   context: WebPartContext, 
   globalConfig: ConfigModel
@@ -58,7 +58,7 @@ export const getChatMessagesReplyFromAssistant = async (
       headers: headers
     };
 
-    const response: any = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
+    const response: HttpClientResponse = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
     
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
@@ -66,18 +66,8 @@ export const getChatMessagesReplyFromAssistant = async (
       throw new Error(`Failed to fetch reply from assistant. Reason: ${error}`);
     }
     
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let isDone = false;
-    while (!isDone) {
-      const { done, value } = await reader?.read() || {};
-      if (done){
-        isDone = true;
-        break;
-      }
-      const chunk = decoder.decode(value, { stream: true });
-      onMessage(chunk);
-    }
+    const data = await response.json() as AssistantValidatedResponse;
+    onMessage(data);
   } 
   catch (error) {
     console.error('Failed to fetch chat reply from assistant:', error);
