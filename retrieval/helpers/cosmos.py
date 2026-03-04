@@ -84,6 +84,9 @@ def read_chat_message_items(user_email, id, type) -> List[ChatMessage]:
     
     return messages
 
+def create_chat_message_item(item: dict):
+    container.create_item(body=item)
+
 def delete_chat_message_items(thread_id, user_email) -> None:
     
     query = "SELECT * FROM c  WHERE c.threadId = @threadId AND c.type = @type"

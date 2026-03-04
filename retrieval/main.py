@@ -6,7 +6,7 @@ from helpers.search import hybrid_semantic_vector_search
 from helpers.common import build_context_from_hits
 from helpers.open_ai import generate_llm_response, guardrail_validate
 from helpers.cosmos import read_chat_thread_items, create_chat_thread_item, update_chat_thread_item, delete_chat_thread_item
-from helpers.cosmos import read_chat_message_items
+from helpers.cosmos import read_chat_message_items, create_chat_message_item
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
