@@ -14,6 +14,12 @@ Rules:
 - If answer not found in context, set "answer" to "I do not know." and citations to [].
 - Do not use any external knowledge or assumptions.
 - Every factual statement in the answer must be supported by the context.
+- Format the "answer" field for readability when helpful:
+  - Use short paragraphs for normal explanations.
+  - Use numbered lists for ordered steps or ranked items.
+  - Use bullet lists for grouped points.
+  - Use Markdown tables for comparisons when it improves clarity.
+  - Do not force Markdown when a plain sentence is clearer.
 
 """
 
