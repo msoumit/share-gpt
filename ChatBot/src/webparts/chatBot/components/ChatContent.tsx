@@ -116,7 +116,7 @@ export const ChatContent: React.FC = () => {
     return <div>Error: {error}</div>;
   }
 
-  const handleStreamingResponse = async(newMessage: ChatMessageModel,newThreadId?:string): Promise<void> => {
+  const handleAssistantResponse = async(newMessage: ChatMessageModel, newThreadId?:string): Promise<void> => {
     const placeholderReply: ChatMessageModel = {
       content: "",
       createdAt: new Date(),
@@ -133,29 +133,22 @@ export const ChatContent: React.FC = () => {
       ...prevMessages,
       placeholderReply
     ]);
+  
+    const response: AssistantValidatedResponse = await getChatMessagesReplyFromAssistant(newMessage, context, globalConfig);
 
-    const handleStreamedMessage = (message: AssistantValidatedResponse): void => {
-      setChatMessages(prevMessages => {
-        const lastMessageIndex = prevMessages.length - 1;
-        const updatedMessages = [...prevMessages];
-        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
-          updatedMessages[lastMessageIndex] = {
-            ...updatedMessages[lastMessageIndex],
-            content: message.answer || "",
-            citations: message.citations || [],
-            guardrail: message.guardrail || null
-          };
-        }
-        return updatedMessages;
-      });
-    };
-
-    const handleError = (error: Error): void => {
-      console.error('Streaming error:', error);
-      const e = error as Error;
-      setError(e.message);
-    };
-    await getChatMessagesReplyFromAssistant(newMessage, handleStreamedMessage, handleError, context, globalConfig);
+    setChatMessages(prevMessages => {
+      const lastMessageIndex = prevMessages.length - 1;
+      const updatedMessages = [...prevMessages];
+      if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
+        updatedMessages[lastMessageIndex] = {
+          ...updatedMessages[lastMessageIndex],
+          content: response.answer || "",
+          citations: response.citations || [],
+          guardrail: response.guardrail || null
+        };
+      }
+      return updatedMessages;
+    });
   }
 
   const handleChatSubmit = async (): Promise<void> => {
@@ -182,7 +175,7 @@ export const ChatContent: React.FC = () => {
           ...prevMessages,
           newMessage
         ]);
-        await handleStreamingResponse(newMessage);
+        await handleAssistantResponse(newMessage);
       }
       catch (error) {
         setLoading(false);
@@ -219,7 +212,7 @@ export const ChatContent: React.FC = () => {
               ...prevMessages,
               newMessage
             ]);
-            await handleStreamingResponse(newMessage,newThreadId);
+            await handleAssistantResponse(newMessage,newThreadId);
             const isChatFromLandingPage = true;
             navigate(`/chatcontent/${newThreadId}`,{replace:true, state:{isChatFromLandingPage}});
           }

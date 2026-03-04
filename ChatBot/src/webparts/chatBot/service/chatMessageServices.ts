@@ -39,39 +39,37 @@ export const getChatMessagesById = async(user:UserModel, id:string, context: Web
 
 export const getChatMessagesReplyFromAssistant = async (
   newMessage: ChatMessageModel, 
-  onMessage: (message: AssistantValidatedResponse) => void, 
-  onError: (error: Error) => void, 
   context: WebPartContext, 
   globalConfig: ConfigModel
-): Promise<void> => {
+): Promise<AssistantValidatedResponse> => {
   try {
     const endpointUri = `${globalConfig.chatAPI}/get-response`;
     const body = {
       ...newMessage
     };
-    
+
     const headers: Headers = new Headers();
     headers.append("Content-type", "application/json");
-    
+
     const options: IHttpClientOptions = {
       body: JSON.stringify(body),
       headers: headers
     };
 
     const response: HttpClientResponse = await context.httpClient.post(endpointUri, HttpClient.configurations.v1, options);
-    
+
     if (!response.ok) {
       const errorResponse = await response.json() as ErrorModel;
       const error: string = errorResponse.error;
       throw new Error(`Failed to fetch reply from assistant. Reason: ${error}`);
     }
-    
-    const data = await response.json() as AssistantValidatedResponse;
-    onMessage(data);
-  } 
+
+    const data = await response.json();
+    return data as AssistantValidatedResponse;
+  }
   catch (error) {
-    console.error('Failed to fetch chat reply from assistant:', error);
-    const err = error instanceof Error ? error : new Error(String(error));
-    onError(err);
+    const e = error as Error;
+    console.error('Failed to fetch chat reply from assistant:', e);
+    throw new Error(e.message);
   }
 };
