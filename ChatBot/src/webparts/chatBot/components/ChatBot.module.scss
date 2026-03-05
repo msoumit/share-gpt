@@ -469,7 +469,6 @@ div[class*="card_"][role="assistant"] {
 .guardrailFlap {
   position: absolute;
   left: 0;
-  top: calc(100% + 6px);
   z-index: 5;
   min-width: 280px;
   max-width: 520px;
@@ -480,6 +479,14 @@ div[class*="card_"][role="assistant"] {
   color: #78350f;
   box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
   animation: guardrailFlapIn 180ms ease-out;
+}
+
+.guardrailFlapUp {
+  bottom: calc(100% + 6px);
+}
+
+.guardrailFlapDown {
+  top: calc(100% + 6px);
 }
 
 .guardrailIssueList {

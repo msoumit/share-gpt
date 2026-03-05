@@ -26,6 +26,7 @@ export const ChatContent: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [assistantStatus, setAssistantStatus] = useState<string>("");
   const [activeVerdictId, setActiveVerdictId] = useState<string | null>(null);
+  const [activeVerdictPlacement, setActiveVerdictPlacement] = useState<"up" | "down">("up");
   const [error, setError] = useState<string | null>(null);
   const { showChatNavigation, modifyChatThread } = useChatThreadContext();
   const [chat, setChat] = useState("");
@@ -350,7 +351,21 @@ export const ChatContent: React.FC = () => {
     }
   }
 
-  const openVerdictFlap = (messageId: string): void => {
+  const openVerdictFlap = (messageId: string, event?: React.SyntheticEvent<HTMLElement>): void => {
+    if (event && chatHistoryContainerRef.current) {
+      const chipRect = event.currentTarget.getBoundingClientRect();
+      const containerRect = chatHistoryContainerRef.current.getBoundingClientRect();
+      const estimatedFlapHeight = 180;
+
+      const availableAbove = chipRect.top - containerRect.top;
+      const availableBelow = containerRect.bottom - chipRect.bottom;
+
+      if (availableAbove < estimatedFlapHeight && availableBelow >= estimatedFlapHeight) {
+        setActiveVerdictPlacement("down");
+      } else {
+        setActiveVerdictPlacement("up");
+      }
+    }
     setActiveVerdictId(messageId);
   };
 
@@ -493,11 +508,17 @@ export const ChatContent: React.FC = () => {
                                       className={`${styles.verdictBadge} ${message.guardrail.verdict === "grounded" ? styles.verdictGrounded : message.guardrail.verdict === "partially_grounded" ? styles.verdictPartial : styles.verdictNotGrounded}`}
                                       role="button"
                                       tabIndex={0}
-                                      onMouseEnter={() => openVerdictFlap(message.id)}
+                                      onMouseEnter={(e) => openVerdictFlap(message.id, e)}
                                       onMouseLeave={closeVerdictFlap}
-                                      onFocus={() => openVerdictFlap(message.id)}
+                                      onFocus={(e) => openVerdictFlap(message.id, e)}
                                       onBlur={closeVerdictFlap}
-                                      onClick={() => setActiveVerdictId(activeVerdictId === message.id ? null : message.id)}
+                                      onClick={(e) => {
+                                        if (activeVerdictId === message.id) {
+                                          setActiveVerdictId(null);
+                                        } else {
+                                          openVerdictFlap(message.id, e);
+                                        }
+                                      }}
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter" || e.key === " ") {
                                           e.preventDefault();
@@ -512,8 +533,8 @@ export const ChatContent: React.FC = () => {
                                     </span>
                                     {activeVerdictId === message.id && (
                                       <div
-                                        className={styles.guardrailFlap}
-                                        onMouseEnter={() => openVerdictFlap(message.id)}
+                                        className={`${styles.guardrailFlap} ${activeVerdictPlacement === "down" ? styles.guardrailFlapDown : styles.guardrailFlapUp}`}
+                                        onMouseEnter={(e) => openVerdictFlap(message.id, e)}
                                         onMouseLeave={closeVerdictFlap}
                                       >
                                         {Array.isArray(message.guardrail.issues) && message.guardrail.issues.length > 0 ? (
