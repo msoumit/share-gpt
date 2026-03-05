@@ -422,6 +422,7 @@ div[class*="card_"][role="assistant"] {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  position: relative;
 }
 
 .verdictBadge {
@@ -463,6 +464,44 @@ div[class*="card_"][role="assistant"] {
   background: var(--cb-color-soft-bg);
   color: var(--cb-color-primary-active);
   border: 1px solid var(--cb-border-primary-medium);
+}
+
+.guardrailFlap {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  min-width: 280px;
+  max-width: 520px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+  background: #fffdf5;
+  color: #78350f;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+  animation: guardrailFlapIn 180ms ease-out;
+}
+
+.guardrailIssueList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.guardrailIssueItem {
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 4px 0;
+}
+
+@keyframes guardrailFlapIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .ChatIntro {

@@ -13,6 +13,7 @@ import { AssistantValidatedResponse, ChatMessageModel, CitationModel, StreamHand
 import { useGlobalContext } from './Context/GlobalContext';
 import styles from './ChatBot.module.scss';
 import { Send32Filled } from "@fluentui/react-icons";
+import { uniqueId } from '../service/common';
 
 
 export const ChatContent: React.FC = () => {
@@ -24,6 +25,7 @@ export const ChatContent: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [assistantStatus, setAssistantStatus] = useState<string>("");
+  const [activeVerdictId, setActiveVerdictId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { showChatNavigation, modifyChatThread } = useChatThreadContext();
   const [chat, setChat] = useState("");
@@ -125,7 +127,7 @@ export const ChatContent: React.FC = () => {
       content: "",
       createdAt: new Date(),
       context: "",
-      id: "placeholderReplyId",  // generate a proper id here
+      id: uniqueId(),
       role: "assistant",
       threadId: id?id:newThreadId as string,
       type: "CHAT_MESSAGE",
@@ -256,7 +258,7 @@ export const ChatContent: React.FC = () => {
           content: chat,
           createdAt: new Date(),
           context: "",
-          id: "newMessageId",
+          id: uniqueId(),
           role: "user",
           threadId: id,
           type: "CHAT_MESSAGE",
@@ -293,7 +295,7 @@ export const ChatContent: React.FC = () => {
               content: chat,
               createdAt: new Date(),
               context: "",
-              id: "newMessageId",
+              id: uniqueId(),
               role: "user",
               threadId: newThreadId,
               type: "CHAT_MESSAGE",
@@ -347,6 +349,14 @@ export const ChatContent: React.FC = () => {
       await handleChatSubmit();
     }
   }
+
+  const openVerdictFlap = (messageId: string): void => {
+    setActiveVerdictId(messageId);
+  };
+
+  const closeVerdictFlap = (): void => {
+    setActiveVerdictId(null);
+  };
 
   const renderTextWithBasicFormatting = (text: string): React.ReactNode => {
     const renderInlineFormatting = (line: string): React.ReactNode[] => {
@@ -479,12 +489,52 @@ export const ChatContent: React.FC = () => {
                                 )}
                                 {message.role === "assistant" && message.guardrail && (
                                   <div className={styles.guardrailMeta}>
-                                    <span className={`${styles.verdictBadge} ${message.guardrail.verdict === "grounded" ? styles.verdictGrounded : message.guardrail.verdict === "partially_grounded" ? styles.verdictPartial : styles.verdictNotGrounded}`}>
+                                    <span
+                                      className={`${styles.verdictBadge} ${message.guardrail.verdict === "grounded" ? styles.verdictGrounded : message.guardrail.verdict === "partially_grounded" ? styles.verdictPartial : styles.verdictNotGrounded}`}
+                                      role="button"
+                                      tabIndex={0}
+                                      onMouseEnter={() => openVerdictFlap(message.id)}
+                                      onMouseLeave={closeVerdictFlap}
+                                      onFocus={() => openVerdictFlap(message.id)}
+                                      onBlur={closeVerdictFlap}
+                                      onClick={() => setActiveVerdictId(activeVerdictId === message.id ? null : message.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          setActiveVerdictId(activeVerdictId === message.id ? null : message.id);
+                                        }
+                                      }}
+                                    >
                                       Verdict: {message.guardrail.verdict}
                                     </span>
                                     <span className={styles.confidenceChip}>
                                       Confidence: {message.guardrail.confidence}
                                     </span>
+                                    {activeVerdictId === message.id && (
+                                      <div
+                                        className={styles.guardrailFlap}
+                                        onMouseEnter={() => openVerdictFlap(message.id)}
+                                        onMouseLeave={closeVerdictFlap}
+                                      >
+                                        {Array.isArray(message.guardrail.issues) && message.guardrail.issues.length > 0 ? (
+                                          <ul className={styles.guardrailIssueList}>
+                                            {message.guardrail.issues.map((issue, issueIndex) => {
+                                              const issueObj = issue as { claim?: string; missing_info?: string };
+                                              return (
+                                                <li key={issueIndex} className={styles.guardrailIssueItem}>
+                                                  {issueObj.claim || "Unsupported claim"}
+                                                  {issueObj.missing_info ? ` - ${issueObj.missing_info}` : ""}
+                                                </li>
+                                              );
+                                            })}
+                                          </ul>
+                                        ) : (
+                                          <div className={styles.guardrailIssueItem}>
+                                            All claims are supported by retrieved context.
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                                 {message.role === "assistant" && index === chatMessages.length - 1 && assistantStatus && (
