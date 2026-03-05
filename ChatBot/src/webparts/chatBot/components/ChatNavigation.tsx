@@ -68,8 +68,8 @@ export const ChatNavigation: React.FC = () => {
         )}
       </ul>
       <div className={styles.sidebarDisclaimer}>
-            <strong>Disclaimer: AI-Powered Search</strong><br />
-This search functionality utilizes Artificial Intelligence to generate results. Although efforts are made to ensure accuracy, responses may contain inaccuracies or omissions. Users are encouraged to verify information before making decisions based on search results.
+            <strong>Disclaimer: ShareGPT Assistant</strong><br />
+ShareGPT provides AI-generated responses based on available company knowledge. Responses may be incomplete or occasionally incorrect, so please verify important information before taking action.
         </div>
       <Dialog open={showDeleteConfirmation}>
         <DialogSurface>
@@ -89,3 +89,4 @@ This search functionality utilizes Artificial Intelligence to generate results. 
     </div>
   );
 };
+
