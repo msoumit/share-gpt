@@ -57,6 +57,13 @@ You MUST follow these rules:
   - supporting_evidence can be an empty array.
   - missing_info must be null.
   - notes should indicate "conversational_intent".
+- Exception: if the answer is exactly "I do not know." (or equivalent wording meaning insufficient context),
+  treat this as a valid grounded fallback behavior.
+  For this exception:
+  - Return exactly one claim marked "supported".
+  - supporting_evidence can be an empty array.
+  - missing_info must be null.
+  - notes should indicate "insufficient_context".
 - Split the answer into atomic, checkable claims.
 - For each claim, set support to one of: supported | partially_supported | unsupported.
   - supported: the entire claim is explicitly supported by the context text.
