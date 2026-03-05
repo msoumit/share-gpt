@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 from openai import AzureOpenAI
 import json
+from typing import Generator
 from helpers.prompts import SYSTEM_PROMPT
 from helpers.common import build_validation_prompt, compute_confidence_from_claims, compute_verdict, build_final_response
 
@@ -44,6 +45,34 @@ def generate_llm_response(context: str, prompt: str):
     answer = response.choices[0].message.content
     parsed_answer = json.loads(answer)
     return parsed_answer
+
+def stream_llm_response_chunks(context: str, prompt: str) -> Generator[str, None, None]:
+    response = oai_client.chat.completions.create(
+        model=OAI_MODEL_DEPLOYMENT,
+        messages=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": f"Context:\n{context}\n\nQuestion:\n{prompt}"
+            }
+        ],
+        temperature=0.1,
+        max_completion_tokens=1500,
+        stream=True
+    )
+
+    for chunk in response:
+        if not hasattr(chunk, "choices") or len(chunk.choices) == 0:
+            continue
+
+        delta = chunk.choices[0].delta
+        if not hasattr(delta, "content") or delta.content is None:
+            continue
+
+        yield delta.content
     
 
 def guardrail_validate(context: str, prompt: str, rag_answer: dict):

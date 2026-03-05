@@ -1,6 +1,20 @@
 import json
 from helpers.prompts import VALIDATION_SCHEMA, VALIDATION_PROMPT
 
+def parse_json_response(raw_text: str) -> dict:
+    text = (raw_text or "").strip()
+    if not text:
+        raise ValueError("Empty model response")
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise
+        return json.loads(text[start:end + 1])
+
 def build_context_from_hits(hits, max_chunks=5):
     blocks = []
     for i, h in enumerate(hits[:max_chunks], 1):
