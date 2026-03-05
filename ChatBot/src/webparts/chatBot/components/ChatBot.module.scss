@@ -371,6 +371,48 @@ div[class*="card_"][role="assistant"] {
   }
 }
 
+.citationList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.citationItem {
+  margin: 4px 0;
+}
+
+.streamStatus {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #f59e0b;
+  background: linear-gradient(90deg, #fff8e1 0%, #ffedd5 100%);
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  display: inline-flex;
+  align-items: center;
+  animation: streamStatusPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes streamStatusPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  }
+}
+
 .guardrailMeta {
   width: 100%;
   margin-top: 8px;
@@ -387,7 +429,7 @@ div[class*="card_"][role="assistant"] {
   align-items: center;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -415,7 +457,7 @@ div[class*="card_"][role="assistant"] {
   align-items: center;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   background: var(--cb-color-soft-bg);

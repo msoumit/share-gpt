@@ -3,8 +3,8 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
 from helpers.search import hybrid_semantic_vector_search
-from helpers.common import build_context_from_hits
-from helpers.open_ai import generate_llm_response, guardrail_validate
+from helpers.common import build_context_from_hits, parse_json_response, extract_answer_delta_from_stream, extract_citation_deltas_from_stream, normalize_citations
+from helpers.open_ai import generate_llm_response, guardrail_validate, stream_llm_response_chunks
 from helpers.cosmos import read_chat_thread_items, create_chat_thread_item, update_chat_thread_item, delete_chat_thread_item
 from helpers.cosmos import read_chat_message_items, create_chat_message_items
 from fastapi.middleware.cors import CORSMiddleware
@@ -154,3 +154,70 @@ async def get_response(request: Request):
     create_chat_message_items(body, validated_response, context)
 
     return validated_response
+
+@app.post("/get-streamed-response")
+async def get_streamed_response(request: Request):
+
+    body = await request.json()
+    prompt = body.get("content")
+
+    if not prompt:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "content is required"}
+        )
+
+    def event_stream():
+        try:
+            yield f"event: status\ndata: {json.dumps({'stage': 'retrieving documents'})}\n\n"
+            print("Performing hybrid search against search index....")
+            hits = hybrid_semantic_vector_search(prompt, k=5)
+
+            print("Building context from search result....")
+            context = build_context_from_hits(hits)
+
+            yield f"event: status\ndata: {json.dumps({'stage': 'generating answer'})}\n\n"
+            print("Streaming augmented LLM answer....")
+
+            raw_stream = ""
+            emitted_answer_len = 0
+            emitted_citation_count = 0
+
+            for delta in stream_llm_response_chunks(context=context, prompt=prompt):
+                raw_stream += delta
+
+                answer_delta, emitted_answer_len = extract_answer_delta_from_stream(raw_stream, emitted_answer_len)
+                if answer_delta:
+                    yield f"event: answer_delta\ndata: {json.dumps({'delta': answer_delta}, ensure_ascii=False)}\n\n"
+
+                citation_deltas, emitted_citation_count = extract_citation_deltas_from_stream(raw_stream, emitted_citation_count)
+                for citation in citation_deltas:
+                    yield f"event: citation_delta\ndata: {json.dumps({'citation': citation}, ensure_ascii=False)}\n\n"
+
+            rag_answer = parse_json_response(raw_stream)
+            rag_answer["citations"] = normalize_citations(rag_answer.get("citations", []))
+
+            yield f"event: answer_ready\ndata: {json.dumps({'answer': rag_answer.get('answer', ''), 'citations': rag_answer.get('citations', [])}, ensure_ascii=False)}\n\n"
+
+            yield f"event: status\ndata: {json.dumps({'stage': 'validating response'})}\n\n"
+            print("Performing guardrail validation for hallucination check....")
+            validated_response = guardrail_validate(context=context, prompt=prompt, rag_answer=rag_answer)
+
+            print("Creating chat messages for user and assistant into Cosmos DB....")
+            create_chat_message_items(body, validated_response, context)
+
+            yield f"event: final\ndata: {json.dumps(validated_response, ensure_ascii=False)}\n\n"
+            yield "event: done\ndata: {}\n\n"
+
+        except Exception as e:
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )

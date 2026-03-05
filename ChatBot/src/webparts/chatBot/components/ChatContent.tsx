@@ -9,7 +9,7 @@ import { GlobalActions } from './GlobalActions';
 import { useChatThreadContext } from './Context/ChatThreadContext';
 import { ChatIntroduction } from './ChatIntroduction';
 import { Textarea } from "@fluentui/react-components";
-import { AssistantValidatedResponse, ChatMessageModel, CitationModel } from '../service/model';
+import { AssistantValidatedResponse, ChatMessageModel, CitationModel, StreamHandlers } from '../service/model';
 import { useGlobalContext } from './Context/GlobalContext';
 import styles from './ChatBot.module.scss';
 import { Send32Filled } from "@fluentui/react-icons";
@@ -23,12 +23,14 @@ export const ChatContent: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessageModel[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [assistantStatus, setAssistantStatus] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const { showChatNavigation, modifyChatThread } = useChatThreadContext();
   const [chat, setChat] = useState("");
   const { currentUser, context, globalConfig } = useGlobalContext();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const chatHistoryContainerRef = React.useRef<HTMLDivElement>(null);
+  const currentStreamStageRef = React.useRef<string>("");
   const [isChatBoxFocused, setIsChatBoxFocused] = useState<boolean>(false);
   const { addChatThread } = useChatThreadContext();
 
@@ -117,6 +119,8 @@ export const ChatContent: React.FC = () => {
   }
 
   const handleAssistantResponse = async(newMessage: ChatMessageModel, newThreadId?:string): Promise<void> => {
+    setAssistantStatus("");
+
     const placeholderReply: ChatMessageModel = {
       content: "",
       createdAt: new Date(),
@@ -133,22 +137,111 @@ export const ChatContent: React.FC = () => {
       ...prevMessages,
       placeholderReply
     ]);
-  
-    const response: AssistantValidatedResponse = await getChatMessagesReplyFromAssistant(newMessage, context, globalConfig);
 
-    setChatMessages(prevMessages => {
-      const lastMessageIndex = prevMessages.length - 1;
-      const updatedMessages = [...prevMessages];
-      if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
-        updatedMessages[lastMessageIndex] = {
-          ...updatedMessages[lastMessageIndex],
-          content: response.answer || "",
-          citations: response.citations || [],
-          guardrail: response.guardrail || null
-        };
+    const handleStatus = (stage: string): void => {
+      currentStreamStageRef.current = stage;
+      setAssistantStatus(stage);
+    };
+
+    const handleAnswerDelta = (delta: string): void => {
+      if (currentStreamStageRef.current !== "validating response") {
+        setAssistantStatus("");
       }
-      return updatedMessages;
-    });
+      setChatMessages(prevMessages => {
+        const lastMessageIndex = prevMessages.length - 1;
+        const updatedMessages = [...prevMessages];
+        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
+          updatedMessages[lastMessageIndex] = {
+            ...updatedMessages[lastMessageIndex],
+            content: updatedMessages[lastMessageIndex].content + delta
+          };
+        }
+        return updatedMessages;
+      });
+    };
+
+    const handleCitationDelta = (citation: CitationModel): void => {
+      if (currentStreamStageRef.current !== "validating response") {
+        setAssistantStatus("");
+      }
+      setChatMessages(prevMessages => {
+        const lastMessageIndex = prevMessages.length - 1;
+        const updatedMessages = [...prevMessages];
+        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
+          const existing = updatedMessages[lastMessageIndex].citations || [];
+          const exists = existing.some(c => c.sourceUrl === citation.sourceUrl);
+          if (!exists) {
+            updatedMessages[lastMessageIndex] = {
+              ...updatedMessages[lastMessageIndex],
+              citations: [...existing, citation]
+            };
+          }
+        }
+        return updatedMessages;
+      });
+    };
+
+    const handleAnswerReady = (payload: { answer: string; citations: CitationModel[] }): void => {
+      if (currentStreamStageRef.current !== "validating response") {
+        setAssistantStatus("");
+      }
+      setChatMessages(prevMessages => {
+        const lastMessageIndex = prevMessages.length - 1;
+        const updatedMessages = [...prevMessages];
+        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
+          updatedMessages[lastMessageIndex] = {
+            ...updatedMessages[lastMessageIndex],
+            content: payload.answer || updatedMessages[lastMessageIndex].content,
+            citations: payload.citations || updatedMessages[lastMessageIndex].citations || []
+          };
+        }
+        return updatedMessages;
+      });
+    };
+
+    const handleFinal = (response: AssistantValidatedResponse): void => {
+      setChatMessages(prevMessages => {
+        const lastMessageIndex = prevMessages.length - 1;
+        const updatedMessages = [...prevMessages];
+        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
+          updatedMessages[lastMessageIndex] = {
+            ...updatedMessages[lastMessageIndex],
+            content: response.answer || updatedMessages[lastMessageIndex].content,
+            citations: response.citations || updatedMessages[lastMessageIndex].citations || [],
+            guardrail: response.guardrail || null
+          };
+        }
+        return updatedMessages;
+      });
+    };
+
+    const handleDone = (): void => {
+      setAssistantStatus("");
+      currentStreamStageRef.current = "";
+    };
+
+    const handleStreamError = (err: Error): void => {
+      setAssistantStatus("");
+      currentStreamStageRef.current = "";
+      setError(err.message);
+    };
+
+    const streamHandlers: StreamHandlers = {
+      onStatus: handleStatus,
+      onAnswerDelta: handleAnswerDelta,
+      onCitationDelta: handleCitationDelta,
+      onAnswerReady: handleAnswerReady,
+      onFinal: handleFinal,
+      onDone: handleDone,
+      onError: handleStreamError
+    };
+
+    await getChatMessagesReplyFromAssistant(
+      newMessage,
+      streamHandlers,
+      context,
+      globalConfig
+    );
   }
 
   const handleChatSubmit = async (): Promise<void> => {
@@ -343,7 +436,7 @@ export const ChatContent: React.FC = () => {
             {!loading && chatMessages.length > 0 && (
               <>
                 {
-                  chatMessages.map((message) => {
+                  chatMessages.map((message, index) => {
                     const mainContent: string = message.content;
                     const citations: CitationModel[] = message.citations || [];
                     const uniqueCitations: CitationModel[] = citations.reduce((acc: CitationModel[], current: CitationModel) => {
@@ -368,18 +461,20 @@ export const ChatContent: React.FC = () => {
                                 )}
                                 {message.role === "assistant" && uniqueCitations.length > 0 && (
                                   <div className={styles.citation}>
+                                    <ul className={styles.citationList}>
                                     {uniqueCitations.map((citation: CitationModel, index) => {
                                       if (!citation.sourceUrl || citation.sourceUrl.indexOf("N/A") >= 0) {
                                         return null; // Skip rendering this citation if the condition is met
                                       }
                                       return(
-                                        <React.Fragment key={index}>
+                                        <li key={index} className={styles.citationItem}>
                                           <a href={citation.sourceUrl} target='_blank' data-interception="off" rel='noopener noreferrer'>
                                             {citation.title}
                                           </a>
-                                        </React.Fragment>
+                                        </li>
                                       );
                                     })}
+                                    </ul>
                                   </div>
                                 )}
                                 {message.role === "assistant" && message.guardrail && (
@@ -391,6 +486,9 @@ export const ChatContent: React.FC = () => {
                                       Confidence: {message.guardrail.confidence}
                                     </span>
                                   </div>
+                                )}
+                                {message.role === "assistant" && index === chatMessages.length - 1 && assistantStatus && (
+                                  <div className={styles.streamStatus}>Status: {assistantStatus}</div>
                                 )}
                               </div>
                             </div>

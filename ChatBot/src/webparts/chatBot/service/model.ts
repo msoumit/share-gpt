@@ -45,6 +45,16 @@ export interface AssistantValidatedResponse {
   guardrail: GuardrailModel | null;
 }
 
+export interface StreamHandlers {
+  onStatus?: (stage: string) => void;
+  onAnswerDelta: (delta: string) => void;
+  onCitationDelta?: (citation: CitationModel) => void;
+  onAnswerReady?: (payload: { answer: string; citations: CitationModel[] }) => void;
+  onFinal: (response: AssistantValidatedResponse) => void;
+  onDone?: () => void;
+  onError: (error: Error) => void;
+}
+
 export interface ErrorModel {
   error: string;
 }
