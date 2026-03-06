@@ -275,14 +275,14 @@
   border-radius: 15px;
   background: transparent;
   margin-bottom: 1rem;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 
   overflow: visible;
 }
 
 div[class*="card_"][role="user"] {
   width: auto;
-  max-width: 60%;
+  max-width: 72%;
   align-self: end;
   background-color: var(--cb-color-user-bubble-bg);
   color: var(--cb-color-text-primary);
@@ -299,7 +299,7 @@ div[class*="card_"][role="user"] {
 
 div[class*="card_"][role="assistant"] {
   width: auto;
-  max-width: 60%;
+  max-width: 72%;
   min-width: 50%;
   align-self: start;
   background: var(--cb-color-assistant-bubble-bg);
@@ -389,7 +389,7 @@ div[class*="card_"][role="assistant"] {
   border: 1px solid #f59e0b;
   background: linear-gradient(90deg, #fff8e1 0%, #ffedd5 100%);
   color: #9a3412;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.2px;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
@@ -430,7 +430,7 @@ div[class*="card_"][role="assistant"] {
   align-items: center;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -458,7 +458,7 @@ div[class*="card_"][role="assistant"] {
   align-items: center;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
   background: var(--cb-color-soft-bg);
