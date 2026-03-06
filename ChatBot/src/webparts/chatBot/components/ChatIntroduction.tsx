@@ -11,7 +11,7 @@ export const ChatIntroduction: React.FC = () => {
                 <h2>Hello, <span>{currentUser.displayName ? currentUser.displayName : ""}</span></h2>
                 <div className={styles.introduction}>
                     I&apos;m ShareGPT, your AI-powered assistant designed to help you with all your company-related questions. 
-                    Whether you&apos;re looking for IT support, HR information, or details from our company hub, I&apos;ve got you covered. 
+                    Whether you&apos;re looking for IT support, HR information, or details from any other places, I&apos;ve got you covered. 
                     Simply ask me about anything, and I&apos;ll do my best to guide you to the right information. 
                     Let&apos;s make your workday easier and more efficient!
                 </div>
