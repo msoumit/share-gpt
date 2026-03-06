@@ -68,3 +68,35 @@ export interface ConfigModel {
   chatAPI: string;
   sharePointOnlineClientId: string;
 }
+
+export interface BrowserSpeechRecognitionAlternativeModel {
+  transcript: string;
+}
+
+export interface BrowserSpeechRecognitionResultModel {
+  isFinal: boolean;
+  length: number;
+  [index: number]: BrowserSpeechRecognitionAlternativeModel;
+}
+
+export interface BrowserSpeechRecognitionEventModel {
+  resultIndex: number;
+  results: ArrayLike<BrowserSpeechRecognitionResultModel>;
+}
+
+export interface BrowserSpeechRecognitionErrorEventModel {
+  error: string;
+}
+
+export interface BrowserSpeechRecognitionModel {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: BrowserSpeechRecognitionEventModel) => void) | null;
+  onerror: ((event: BrowserSpeechRecognitionErrorEventModel) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+export type BrowserSpeechRecognitionCtorModel = new () => BrowserSpeechRecognitionModel;

@@ -646,6 +646,70 @@ div[class*="card_"][role="assistant"] {
   min-height: 45px;
 }
 
+.dictationControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 10px;
+}
+
+.dictationIcon {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-color-primary);
+  border-radius: 10px;
+  padding: 5px;
+  transition:
+    color 0.2s ease,
+    transform 0.15s ease;
+  position: relative;
+
+  &:hover {
+    color: var(--cb-color-primary-hover);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(1);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--cb-color-text-primary);
+    color: var(--cb-color-on-primary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 12px;
+    opacity: 0.95;
+    z-index: 20;
+    pointer-events: none;
+  }
+}
+
+.dictationIconStop {
+  color: #991b1b;
+}
+
+.dictationError {
+  width: 75%;
+  max-width: 1200px;
+  margin: -8px auto 12px auto;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
 .GlobalActions {
   display: flex;
   justify-content: right;

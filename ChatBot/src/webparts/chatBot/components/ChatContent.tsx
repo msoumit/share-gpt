@@ -9,10 +9,10 @@ import { GlobalActions } from './GlobalActions';
 import { useChatThreadContext } from './Context/ChatThreadContext';
 import { ChatIntroduction } from './ChatIntroduction';
 import { Textarea } from "@fluentui/react-components";
-import { AssistantValidatedResponse, ChatMessageModel, CitationModel, StreamHandlers } from '../service/model';
+import { AssistantValidatedResponse, BrowserSpeechRecognitionCtorModel, BrowserSpeechRecognitionErrorEventModel, BrowserSpeechRecognitionEventModel, BrowserSpeechRecognitionModel, ChatMessageModel, CitationModel, StreamHandlers } from '../service/model';
 import { useGlobalContext } from './Context/GlobalContext';
 import styles from './ChatBot.module.scss';
-import { Send32Filled } from "@fluentui/react-icons";
+import { Mic24Regular, Send24Filled, Stop24Filled } from "@fluentui/react-icons";
 import { uniqueId } from '../service/common';
 
 
@@ -34,7 +34,14 @@ export const ChatContent: React.FC = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const chatHistoryContainerRef = React.useRef<HTMLDivElement>(null);
   const currentStreamStageRef = React.useRef<string>("");
+  const recognitionRef = React.useRef<BrowserSpeechRecognitionModel | null>(null);
+  const finalTranscriptRef = React.useRef<string>("");
+  const transcriptRef = React.useRef<string>("");
+  const shouldInsertTranscriptOnEndRef = React.useRef<boolean>(false);
   const [isChatBoxFocused, setIsChatBoxFocused] = useState<boolean>(false);
+  const [isDictationSupported, setIsDictationSupported] = useState<boolean>(false);
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [dictationError, setDictationError] = useState<string | null>(null);
   const { addChatThread } = useChatThreadContext();
 
 
@@ -86,6 +93,87 @@ export const ChatContent: React.FC = () => {
       textarea.style.overflowY = 'auto';
     }
   }, [chat]);
+
+  useEffect(() => {
+    const win = window as Window & {
+      SpeechRecognition?: BrowserSpeechRecognitionCtorModel;
+      webkitSpeechRecognition?: BrowserSpeechRecognitionCtorModel;
+    };
+
+    const SpeechRecognitionCtor = win.SpeechRecognition || win.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      setIsDictationSupported(false);
+      return;
+    }
+
+    setIsDictationSupported(true);
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || "en-US";
+
+    recognition.onresult = (event: BrowserSpeechRecognitionEventModel): void => {
+      let interimTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = (result[0]?.transcript || "").trim();
+        if (!transcript) {
+          continue;
+        }
+
+        if (result.isFinal) {
+          finalTranscriptRef.current = `${finalTranscriptRef.current} ${transcript}`.trim();
+        } else {
+          interimTranscript = `${interimTranscript} ${transcript}`.trim();
+        }
+      }
+
+      transcriptRef.current = `${finalTranscriptRef.current} ${interimTranscript}`.trim();
+    };
+
+    recognition.onerror = (event: BrowserSpeechRecognitionErrorEventModel): void => {
+      setDictationError(`Dictation error: ${event.error}`);
+      setIsListening(false);
+      shouldInsertTranscriptOnEndRef.current = false;
+    };
+
+    recognition.onend = (): void => {
+      setIsListening(false);
+
+      if (!shouldInsertTranscriptOnEndRef.current) {
+        return;
+      }
+
+      const transcript = transcriptRef.current.trim();
+      if (transcript) {
+        setChat((prev) => {
+          const trimmed = prev.trim();
+          if (!trimmed) {
+            return transcript;
+          }
+          return `${prev}${prev.endsWith(" ") ? "" : " "}${transcript}`;
+        });
+        textareaRef.current?.focus();
+      }
+
+      shouldInsertTranscriptOnEndRef.current = false;
+      finalTranscriptRef.current = "";
+      transcriptRef.current = "";
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // no-op
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const el = chatHistoryContainerRef.current;
@@ -339,6 +427,39 @@ export const ChatContent: React.FC = () => {
 
   const handleChatChange = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setChat(event.target.value);
+  }
+
+  const handleStartDictation = (): void => {
+    if (!recognitionRef.current || isSubmitting) {
+      return;
+    }
+
+    try {
+      finalTranscriptRef.current = "";
+      transcriptRef.current = "";
+      shouldInsertTranscriptOnEndRef.current = false;
+      setDictationError(null);
+      recognitionRef.current.start();
+      setIsListening(true);
+    } 
+    catch {
+      setDictationError("Unable to start dictation. Please allow microphone access and try again.");
+      setIsListening(false);
+    }
+  }
+
+  const handleStopDictation = (): void => {
+    if (!recognitionRef.current) {
+      return;
+    }
+
+    try {
+      shouldInsertTranscriptOnEndRef.current = true;
+      recognitionRef.current.stop();
+    } catch {
+      // no-op
+    }
+    setIsListening(false);
   }
 
   const handleChatBoxFocus = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
@@ -598,15 +719,45 @@ export const ChatContent: React.FC = () => {
               disabled={isSubmitting}
               onBlur={handleChatBoxBlur}
             />
-          
+            {isDictationSupported && (
+              <div className={styles.dictationControls}>
+                {!isListening && (
+                  <div
+                    className={isSubmitting ? [styles.dictationIcon, styles.sendIconDisabled].join(' ') : styles.dictationIcon}
+                    onClick={!isSubmitting ? handleStartDictation : undefined}
+                    data-tooltip="Dictate"
+                    aria-label="Dictate"
+                    role="button"
+                    aria-disabled={isSubmitting}
+                  >
+                    <Mic24Regular />
+                  </div>
+                )}
+                {isListening && (
+                  <div
+                    className={[styles.dictationIcon, styles.dictationIconStop].join(" ")}
+                    onClick={handleStopDictation}
+                    aria-label="Stop dictation"
+                    role="button"
+                  >
+                    <Stop24Filled />
+                  </div>
+                )}
+              </div>
+            )}
             <div
               className={canSubmit ? styles.sendIcon : [styles.sendIcon, styles.sendIconDisabled].join(' ')}
               onClick={canSubmit ? handleChatSubmit : undefined}
               aria-disabled={!canSubmit}
             >
-              <Send32Filled />
+              <Send24Filled />
             </div>
           </div>
+          {dictationError && (
+            <div className={styles.dictationError}>
+              {dictationError}
+            </div>
+          )}
         </div>
       </div>
     </div>
