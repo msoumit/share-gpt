@@ -248,11 +248,16 @@ export const ChatContent: React.FC = () => {
   }
 
   const handleChatSubmit = async (): Promise<void> => {
+    const normalizedChat = chat.trim();
+    if (!normalizedChat || isSubmitting) {
+      return;
+    }
+
     if (currentUser && id) {
       try {
         setIsSubmitting(true);
         if (chatMessages.length === 0) {
-          const name = chat.slice(0, 100);
+          const name = normalizedChat.slice(0, 100);
           modifyChatThread(id, currentUser.email, name);  // eslint-disable-line @typescript-eslint/no-floating-promises
         }
         const newMessage: ChatMessageModel = {
@@ -289,7 +294,7 @@ export const ChatContent: React.FC = () => {
           try {
             setIsSubmitting(true);
             if (chatMessages.length === 0) {
-              const name = chat.slice(0, 100);
+              const name = normalizedChat.slice(0, 100);
               modifyChatThread(newThreadId, currentUser.email, name);  // eslint-disable-line @typescript-eslint/no-floating-promises
             }
             const newMessage: ChatMessageModel = {
@@ -347,7 +352,9 @@ export const ChatContent: React.FC = () => {
   const handleChatKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>): Promise<void> => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      await handleChatSubmit();
+      if (chat.trim() && !isSubmitting) {
+        await handleChatSubmit();
+      }
     }
   }
 
@@ -445,6 +452,8 @@ export const ChatContent: React.FC = () => {
 
     return blocks;
   }
+
+  const canSubmit = chat.trim().length > 0 && !isSubmitting;
 
   return (
     <div className={styles.MainChatContainer}>
@@ -590,8 +599,11 @@ export const ChatContent: React.FC = () => {
               onBlur={handleChatBoxBlur}
             />
           
-            <div className={isSubmitting ? [styles.sendIcon, styles.sendIconDisabled].join(' ') : styles.sendIcon} 
-              onClick={handleChatSubmit}>
+            <div
+              className={canSubmit ? styles.sendIcon : [styles.sendIcon, styles.sendIconDisabled].join(' ')}
+              onClick={canSubmit ? handleChatSubmit : undefined}
+              aria-disabled={!canSubmit}
+            >
               <Send32Filled />
             </div>
           </div>
