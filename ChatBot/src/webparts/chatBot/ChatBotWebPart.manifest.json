@@ -24,7 +24,8 @@
     "properties": {
       "description": "ChatBot",
       "chatAPI": "http://127.0.0.1:8000",
-      "sharePointOnlineClientId": "0b188a5c-5774-4b88-893a-415baeb08114"
+      "introductionMessage": "I'm ShareGPT, your AI-powered assistant designed to help you with all your company-related questions. Whether you're looking for IT support, HR information, or details from any other places, I've got you covered. Simply ask me about anything, and I'll do my best to guide you to the right information. Let's make your workday easier and more efficient!",
+      "sidebarDisclaimer": "ShareGPT provides AI-generated responses based on available company knowledge. Responses may be incomplete or occasionally incorrect, so please verify important information before taking action."
     }
   }]
 }

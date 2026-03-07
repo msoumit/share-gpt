@@ -66,7 +66,8 @@ export type HeadersType = {
 
 export interface ConfigModel {
   chatAPI: string;
-  sharePointOnlineClientId: string;
+  introductionMessage: string;
+  sidebarDisclaimer: string;
 }
 
 export interface BrowserSpeechRecognitionAlternativeModel {

@@ -6,13 +6,16 @@ import { Spinner, Button } from '@fluentui/react-components';
 import { Dialog, DialogActions, DialogContent, DialogBody, DialogSurface, DialogTrigger } from "@fluentui/react-components";
 import { Delete20Regular } from '@fluentui/react-icons';
 import { ChatThreadModel } from '../service/model';
+import { useGlobalContext } from './Context/GlobalContext';
 
 export const ChatNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { globalConfig } = useGlobalContext();
   const { chatThread, loading, error, removeChatThread } = useChatThreadContext();
   const [showDeleteConfirmation, setShowDeleteConfirmation] = React.useState(false);
   const [threadToDelete, setThreadToDelete] = React.useState("");
+  const disclaimerBody: string = globalConfig.sidebarDisclaimer?.trim() || "ShareGPT provides AI-generated responses based on available company knowledge. Responses may be incomplete or occasionally incorrect, so please verify important information before taking action.";
 
   if (loading) {
     return <Spinner className={[styles.spinner, styles.spinnerCentered].join(' ')} />;
@@ -68,8 +71,8 @@ export const ChatNavigation: React.FC = () => {
         )}
       </ul>
       <div className={styles.sidebarDisclaimer}>
-            <strong>Disclaimer: ShareGPT Assistant</strong><br />
-ShareGPT provides AI-generated responses based on available company knowledge. Responses may be incomplete or occasionally incorrect, so please verify important information before taking action.
+            <strong>Disclaimer:</strong><br />
+            {disclaimerBody}
         </div>
       <Dialog open={showDeleteConfirmation}>
         <DialogSurface>

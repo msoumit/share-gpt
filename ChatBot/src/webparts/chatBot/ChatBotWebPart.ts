@@ -17,7 +17,8 @@ import { UserModel, ConfigModel } from "./service/model";
 export interface IChatBotWebPartProps {
   description: string;
   chatAPI: string;
-  sharePointOnlineClientId: string;
+  introductionMessage: string;
+  sidebarDisclaimer: string;
 }
 
 export default class ChatBotWebPart extends BaseClientSideWebPart<IChatBotWebPartProps> {
@@ -34,7 +35,8 @@ export default class ChatBotWebPart extends BaseClientSideWebPart<IChatBotWebPar
 
     const config: ConfigModel = {
       chatAPI: this.properties.chatAPI,
-      sharePointOnlineClientId: this.properties.sharePointOnlineClientId
+      introductionMessage: this.properties.introductionMessage,
+      sidebarDisclaimer: this.properties.sidebarDisclaimer
     };
 
     const element: React.ReactElement<IChatBotProps> = React.createElement(
@@ -132,8 +134,13 @@ export default class ChatBotWebPart extends BaseClientSideWebPart<IChatBotWebPar
                 PropertyPaneTextField('chatAPI', {
                   label: "Chat API EndPoint"
                 }),
-                PropertyPaneTextField('sharePointOnlineClientId', {
-                  label: "SharePoint Online Extensibility App Id"
+                PropertyPaneTextField('introductionMessage', {
+                  label: "Introduction Message",
+                  multiline: true
+                }),
+                PropertyPaneTextField('sidebarDisclaimer', {
+                  label: "Sidebar Disclaimer",
+                  multiline: true
                 })
               ]
             }
