@@ -32,6 +32,7 @@ export const ChatContent: React.FC = () => {
   const [isChatBoxFocused, setIsChatBoxFocused] = useState<boolean>(false);
 
   const maxTextareaHeight = 100;
+  const baseTextareaHeight = 36;
   const isInitialLoadRef = React.useRef(true);
   const scrollOnNextUpdateRef = React.useRef(false);
 
@@ -102,9 +103,16 @@ export const ChatContent: React.FC = () => {
   useEffect(() => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
+      if (!chat.trim()) {
+        textarea.style.height = `${baseTextareaHeight}px`;
+        textarea.style.overflowY = "hidden";
+        return;
+      }
+
       textarea.style.height = "auto";
-      textarea.style.height = `${Math.min(textarea.scrollHeight, maxTextareaHeight)}px`;
-      textarea.style.overflowY = "auto";
+      const nextHeight = Math.min(textarea.scrollHeight, maxTextareaHeight);
+      textarea.style.height = `${nextHeight}px`;
+      textarea.style.overflowY = nextHeight >= maxTextareaHeight ? "auto" : "hidden";
     }
   }, [chat]);
 

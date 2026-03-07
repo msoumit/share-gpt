@@ -886,10 +886,11 @@ div[class*="card_"][role="assistant"] {
 
   #chatBoxArea {
     border: 0px solid transparent !important;
-    height: 35px;
-    min-height: 35px;
-    line-height: 15px;
-    padding-top: 12px;
+    height: 36px;
+    min-height: 36px;
+    line-height: 22px;
+    padding-top: 7px;
+    padding-bottom: 7px;
   }
 
   [id^="vpc_Page.SiteFooter"] {
