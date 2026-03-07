@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ChatBot.module.scss';
 import { useChatThreadContext } from './Context/ChatThreadContext';
-import { PanelLeft32Regular, PanelRight32Regular, Home32Regular } from "@fluentui/react-icons";
+import { PanelLeft24Regular, PanelRight24Regular, Home24Regular } from "@fluentui/react-icons";
 
 
 export const GlobalActions: React.FC = () => {
@@ -42,10 +42,10 @@ export const GlobalActions: React.FC = () => {
                     <div className={styles.headerLeft}>
                         <div className={[styles.icon, styles.expander].join(" ")} onClick={() => handleShowChatNavigation()}
                             data-tooltip={showChatNavigation ? "Close Sidebar" : "Open Sidebar"}>
-                            {showChatNavigation ? <PanelLeft32Regular /> : <PanelRight32Regular />}
+                            {showChatNavigation ? <PanelLeft24Regular /> : <PanelRight24Regular />}
                         </div>
                         <div className={[styles.icon, styles.home].join(" ")} onClick={handleGoHome} data-tooltip="Home" aria-label="Go to home">
-                            <Home32Regular />
+                            <Home24Regular />
                         </div>
                     </div>
                     
