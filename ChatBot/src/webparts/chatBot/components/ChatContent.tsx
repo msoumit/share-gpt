@@ -102,6 +102,7 @@ export const ChatContent: React.FC = () => {
   useEffect(() => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
+      textarea.style.height = "auto";
       textarea.style.height = `${Math.min(textarea.scrollHeight, maxTextareaHeight)}px`;
       textarea.style.overflowY = "auto";
     }
