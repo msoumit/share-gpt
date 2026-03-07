@@ -1,20 +1,19 @@
-import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
-import { ChatNavigation } from './ChatNavigation';
-import { Spinner } from '@fluentui/react-components';
-import { getChatMessagesById, getChatMessagesReplyFromAssistant } from '../service/chatMessageServices';
-import { GlobalActions } from './GlobalActions';
-import { useChatThreadContext } from './Context/ChatThreadContext';
-import { ChatIntroduction } from './ChatIntroduction';
-import { Textarea } from "@fluentui/react-components";
-import { AssistantValidatedResponse, BrowserSpeechRecognitionCtorModel, BrowserSpeechRecognitionErrorEventModel, BrowserSpeechRecognitionEventModel, BrowserSpeechRecognitionModel, ChatMessageModel, CitationModel, StreamHandlers } from '../service/model';
-import { useGlobalContext } from './Context/GlobalContext';
-import styles from './ChatBot.module.scss';
-import { Mic24Regular, Send24Filled, Stop24Filled } from "@fluentui/react-icons";
-import { uniqueId } from '../service/common';
-
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { ChatNavigation } from "./ChatNavigation";
+import { getChatMessagesById } from "../service/chatMessageServices";
+import { GlobalActions } from "./GlobalActions";
+import { useChatThreadContext } from "./Context/ChatThreadContext";
+import { ChatMessageModel } from "../service/model";
+import { useGlobalContext } from "./Context/GlobalContext";
+import styles from "./ChatBot.module.scss";
+import { uniqueId } from "../service/common";
+import { ChatMessageList } from "./ChatMessageList";
+import { ChatInputBar } from "./ChatInputBar";
+import { UseSpeechDictationParams, useSpeechDictation } from "./hooks/useSpeechDictation";
+import { UseAssistantStreamParams, useAssistantStream } from "./hooks/useAssistantStream";
 
 export const ChatContent: React.FC = () => {
   const { id } = useParams();
@@ -24,65 +23,79 @@ export const ChatContent: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessageModel[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [assistantStatus, setAssistantStatus] = useState<string>("");
-  const [activeVerdictId, setActiveVerdictId] = useState<string | null>(null);
-  const [activeVerdictPlacement, setActiveVerdictPlacement] = useState<"up" | "down">("up");
   const [error, setError] = useState<string | null>(null);
-  const { showChatNavigation, modifyChatThread } = useChatThreadContext();
+  const { showChatNavigation, modifyChatThread, addChatThread } = useChatThreadContext();
   const [chat, setChat] = useState("");
   const { currentUser, context, globalConfig } = useGlobalContext();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const chatHistoryContainerRef = React.useRef<HTMLDivElement>(null);
-  const currentStreamStageRef = React.useRef<string>("");
-  const recognitionRef = React.useRef<BrowserSpeechRecognitionModel | null>(null);
-  const finalTranscriptRef = React.useRef<string>("");
-  const transcriptRef = React.useRef<string>("");
-  const shouldInsertTranscriptOnEndRef = React.useRef<boolean>(false);
   const [isChatBoxFocused, setIsChatBoxFocused] = useState<boolean>(false);
-  const [isDictationSupported, setIsDictationSupported] = useState<boolean>(false);
-  const [isListening, setIsListening] = useState<boolean>(false);
-  const [dictationError, setDictationError] = useState<string | null>(null);
-  const { addChatThread } = useChatThreadContext();
-
 
   const maxTextareaHeight = 100;
   const isInitialLoadRef = React.useRef(true);
   const scrollOnNextUpdateRef = React.useRef(false);
 
+  const onSpeechTranscript = React.useCallback((transcript: string): void => {
+    setChat((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) {
+        return transcript;
+      }
+      return `${prev}${prev.endsWith(" ") ? "" : " "}${transcript}`;
+    });
+    textareaRef.current?.focus();
+  }, []);
+
+  const speechDictationParams: UseSpeechDictationParams = {
+    onTranscript: onSpeechTranscript,
+    disabled: isSubmitting
+  };
+
+  const {isDictationSupported, isListening, dictationError, startDictation, stopDictation} = useSpeechDictation(speechDictationParams);
+
+  const assistantStreamParams: UseAssistantStreamParams = {
+    threadId: id,
+    currentUser,
+    context,
+    globalConfig,
+    setChatMessages,
+    setError
+  };
+
+  const { assistantStatus, requestAssistantResponse } = useAssistantStream(assistantStreamParams);
+
   useEffect(() => {
     const runPageLoad = async (): Promise<void> => {
       if (id) {
         try {
-          if(isChatFromLandingPage){
+          if (isChatFromLandingPage) {
             setLoading(false);
           }
-          else{
+          else {
             setLoading(true);
           }
           setError(null);
           const messages = await getChatMessagesById(currentUser, id, context, globalConfig);
           setChatMessages(messages);
-          // ensure we attempt to scroll after these messages render
           scrollOnNextUpdateRef.current = true;
-        }
-        catch (error) {
-          const e = error as Error;
+        } 
+        catch (loadError) {
+          const e = loadError as Error;
           setError(e.message);
-        }
+        } 
         finally {
           setLoading(false);
         }
-      }
-
+      } 
       else {
         setChatMessages([]);
         setError(null);
         setLoading(false);
       }
+    };
 
-    }
-    runPageLoad().then().catch((error) => {
-      console.log(error);
+    runPageLoad().then().catch((loadError) => {
+      console.log(loadError);
     });
   }, [id]);
 
@@ -90,103 +103,21 @@ export const ChatContent: React.FC = () => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
       textarea.style.height = `${Math.min(textarea.scrollHeight, maxTextareaHeight)}px`;
-      textarea.style.overflowY = 'auto';
+      textarea.style.overflowY = "auto";
     }
   }, [chat]);
-
-  useEffect(() => {
-    const win = window as Window & {
-      SpeechRecognition?: BrowserSpeechRecognitionCtorModel;
-      webkitSpeechRecognition?: BrowserSpeechRecognitionCtorModel;
-    };
-
-    const SpeechRecognitionCtor = win.SpeechRecognition || win.webkitSpeechRecognition;
-
-    if (!SpeechRecognitionCtor) {
-      setIsDictationSupported(false);
-      return;
-    }
-
-    setIsDictationSupported(true);
-
-    const recognition = new SpeechRecognitionCtor();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = navigator.language || "en-US";
-
-    recognition.onresult = (event: BrowserSpeechRecognitionEventModel): void => {
-      let interimTranscript = "";
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = (result[0]?.transcript || "").trim();
-        if (!transcript) {
-          continue;
-        }
-
-        if (result.isFinal) {
-          finalTranscriptRef.current = `${finalTranscriptRef.current} ${transcript}`.trim();
-        } else {
-          interimTranscript = `${interimTranscript} ${transcript}`.trim();
-        }
-      }
-
-      transcriptRef.current = `${finalTranscriptRef.current} ${interimTranscript}`.trim();
-    };
-
-    recognition.onerror = (event: BrowserSpeechRecognitionErrorEventModel): void => {
-      setDictationError(`Dictation error: ${event.error}`);
-      setIsListening(false);
-      shouldInsertTranscriptOnEndRef.current = false;
-    };
-
-    recognition.onend = (): void => {
-      setIsListening(false);
-
-      if (!shouldInsertTranscriptOnEndRef.current) {
-        return;
-      }
-
-      const transcript = transcriptRef.current.trim();
-      if (transcript) {
-        setChat((prev) => {
-          const trimmed = prev.trim();
-          if (!trimmed) {
-            return transcript;
-          }
-          return `${prev}${prev.endsWith(" ") ? "" : " "}${transcript}`;
-        });
-        textareaRef.current?.focus();
-      }
-
-      shouldInsertTranscriptOnEndRef.current = false;
-      finalTranscriptRef.current = "";
-      transcriptRef.current = "";
-    };
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      try {
-        recognitionRef.current?.stop();
-      } catch {
-        // no-op
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const el = chatHistoryContainerRef.current;
     if (!el) return;
 
-    const doScroll = (behavior: 'auto' | 'smooth') => {
-      // run in RAF + timeout to ensure layout/styling settled before scrolling
+    const doScroll = (behavior: "auto" | "smooth") => {
       requestAnimationFrame(() => {
         setTimeout(() => {
           try {
             el.scrollTo({ top: el.scrollHeight, behavior });
-          } catch (e) {
-            // fallback
+          } 
+          catch {
             el.scrollTop = el.scrollHeight;
           }
         }, 0);
@@ -194,146 +125,14 @@ export const ChatContent: React.FC = () => {
     };
 
     if (isInitialLoadRef.current || scrollOnNextUpdateRef.current) {
-      // jump instantly to bottom on initial or after loading a thread
-      doScroll('auto');
+      doScroll("auto");
       isInitialLoadRef.current = false;
       scrollOnNextUpdateRef.current = false;
       return;
     }
 
-    // updates: smooth scroll for appended messages
-    doScroll('smooth');
+    doScroll("smooth");
   }, [chatMessages, id]);
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  const handleAssistantResponse = async(newMessage: ChatMessageModel, newThreadId?:string): Promise<void> => {
-    setAssistantStatus("");
-
-    const placeholderReply: ChatMessageModel = {
-      content: "",
-      createdAt: new Date(),
-      context: "",
-      id: uniqueId(),
-      role: "assistant",
-      threadId: id?id:newThreadId as string,
-      type: "CHAT_MESSAGE",
-      userEmail: currentUser.email,
-      userName: currentUser.displayName
-    };
-  
-    setChatMessages(prevMessages => [
-      ...prevMessages,
-      placeholderReply
-    ]);
-
-    const handleStatus = (stage: string): void => {
-      currentStreamStageRef.current = stage;
-      setAssistantStatus(stage);
-    };
-
-    const handleAnswerDelta = (delta: string): void => {
-      if (currentStreamStageRef.current !== "validating response") {
-        setAssistantStatus("");
-      }
-      setChatMessages(prevMessages => {
-        const lastMessageIndex = prevMessages.length - 1;
-        const updatedMessages = [...prevMessages];
-        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
-          updatedMessages[lastMessageIndex] = {
-            ...updatedMessages[lastMessageIndex],
-            content: updatedMessages[lastMessageIndex].content + delta
-          };
-        }
-        return updatedMessages;
-      });
-    };
-
-    const handleCitationDelta = (citation: CitationModel): void => {
-      if (currentStreamStageRef.current !== "validating response") {
-        setAssistantStatus("");
-      }
-      setChatMessages(prevMessages => {
-        const lastMessageIndex = prevMessages.length - 1;
-        const updatedMessages = [...prevMessages];
-        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
-          const existing = updatedMessages[lastMessageIndex].citations || [];
-          const exists = existing.some(c => c.sourceUrl === citation.sourceUrl);
-          if (!exists) {
-            updatedMessages[lastMessageIndex] = {
-              ...updatedMessages[lastMessageIndex],
-              citations: [...existing, citation]
-            };
-          }
-        }
-        return updatedMessages;
-      });
-    };
-
-    const handleAnswerReady = (payload: { answer: string; citations: CitationModel[] }): void => {
-      if (currentStreamStageRef.current !== "validating response") {
-        setAssistantStatus("");
-      }
-      setChatMessages(prevMessages => {
-        const lastMessageIndex = prevMessages.length - 1;
-        const updatedMessages = [...prevMessages];
-        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
-          updatedMessages[lastMessageIndex] = {
-            ...updatedMessages[lastMessageIndex],
-            content: payload.answer || updatedMessages[lastMessageIndex].content,
-            citations: payload.citations || updatedMessages[lastMessageIndex].citations || []
-          };
-        }
-        return updatedMessages;
-      });
-    };
-
-    const handleFinal = (response: AssistantValidatedResponse): void => {
-      setChatMessages(prevMessages => {
-        const lastMessageIndex = prevMessages.length - 1;
-        const updatedMessages = [...prevMessages];
-        if (lastMessageIndex >= 0 && updatedMessages[lastMessageIndex].role === "assistant") {
-          updatedMessages[lastMessageIndex] = {
-            ...updatedMessages[lastMessageIndex],
-            content: response.answer || updatedMessages[lastMessageIndex].content,
-            citations: response.citations || updatedMessages[lastMessageIndex].citations || [],
-            guardrail: response.guardrail || null
-          };
-        }
-        return updatedMessages;
-      });
-    };
-
-    const handleDone = (): void => {
-      setAssistantStatus("");
-      currentStreamStageRef.current = "";
-    };
-
-    const handleStreamError = (err: Error): void => {
-      setAssistantStatus("");
-      currentStreamStageRef.current = "";
-      setError(err.message);
-    };
-
-    const streamHandlers: StreamHandlers = {
-      onStatus: handleStatus,
-      onAnswerDelta: handleAnswerDelta,
-      onCitationDelta: handleCitationDelta,
-      onAnswerReady: handleAnswerReady,
-      onFinal: handleFinal,
-      onDone: handleDone,
-      onError: handleStreamError
-    };
-
-    await getChatMessagesReplyFromAssistant(
-      newMessage,
-      streamHandlers,
-      context,
-      globalConfig
-    );
-  }
 
   const handleChatSubmit = async (): Promise<void> => {
     const normalizedChat = chat.trim();
@@ -346,7 +145,7 @@ export const ChatContent: React.FC = () => {
         setIsSubmitting(true);
         if (chatMessages.length === 0) {
           const name = normalizedChat.slice(0, 100);
-          modifyChatThread(id, currentUser.email, name);  // eslint-disable-line @typescript-eslint/no-floating-promises
+          modifyChatThread(id, currentUser.email, name); // eslint-disable-line @typescript-eslint/no-floating-promises
         }
         const newMessage: ChatMessageModel = {
           content: chat,
@@ -364,214 +163,89 @@ export const ChatContent: React.FC = () => {
           ...prevMessages,
           newMessage
         ]);
-        await handleAssistantResponse(newMessage);
-      }
-      catch (error) {
+        await requestAssistantResponse(newMessage);
+      } 
+      catch (submitError) {
         setLoading(false);
-        const e = error as Error;
+        const e = submitError as Error;
         setError(e.message);
-      }
-      finally{
+      } 
+      finally {
         setIsSubmitting(false);
       }
+      return;
+    }
 
-    }
-    else if(currentUser && !id) { //When Id is not present, then first need to create the id
+    if (currentUser && !id) {
+      try {
+        const newThreadId = await addChatThread();
         try {
-          const newThreadId = await addChatThread();
-          try {
-            setIsSubmitting(true);
-            if (chatMessages.length === 0) {
-              const name = normalizedChat.slice(0, 100);
-              modifyChatThread(newThreadId, currentUser.email, name);  // eslint-disable-line @typescript-eslint/no-floating-promises
-            }
-            const newMessage: ChatMessageModel = {
-              content: chat,
-              createdAt: new Date(),
-              context: "",
-              id: uniqueId(),
-              role: "user",
-              threadId: newThreadId,
-              type: "CHAT_MESSAGE",
-              userEmail: currentUser.email.toLowerCase(),
-              userName: currentUser.displayName
-            };
-            setChat("");
-            setChatMessages((prevMessages) => [
-              ...prevMessages,
-              newMessage
-            ]);
-            await handleAssistantResponse(newMessage,newThreadId);
-            const isChatFromLandingPage = true;
-            navigate(`/chatcontent/${newThreadId}`,{replace:true, state:{isChatFromLandingPage}});
+          setIsSubmitting(true);
+          if (chatMessages.length === 0) {
+            const name = normalizedChat.slice(0, 100);
+            modifyChatThread(newThreadId, currentUser.email, name); // eslint-disable-line @typescript-eslint/no-floating-promises
           }
-          catch (error) {
-            setLoading(false);
-            const e = error as Error;
-            setError(e.message);
-          }
-          finally{
-            setIsSubmitting(false);
-          }
-          
-      }
-      catch (error) {
-          const e = error as Error;
+          const newMessage: ChatMessageModel = {
+            content: chat,
+            createdAt: new Date(),
+            context: "",
+            id: uniqueId(),
+            role: "user",
+            threadId: newThreadId,
+            type: "CHAT_MESSAGE",
+            userEmail: currentUser.email.toLowerCase(),
+            userName: currentUser.displayName
+          };
+          setChat("");
+          setChatMessages((prevMessages) => [
+            ...prevMessages,
+            newMessage
+          ]);
+          await requestAssistantResponse(newMessage, newThreadId);
+          navigate(`/chatcontent/${newThreadId}`, { replace: true, state: { isChatFromLandingPage: true } });
+        } 
+        catch (submitError) {
+          setLoading(false);
+          const e = submitError as Error;
           setError(e.message);
+        } 
+        finally {
+          setIsSubmitting(false);
+        }
+      } 
+      catch (createError) {
+        const e = createError as Error;
+        setError(e.message);
       }
+      return;
     }
-    else {
-      throw new Error("Teams user credential failure");
-    }
-  }
+
+    throw new Error("Teams user credential failure");
+  };
 
   const handleChatChange = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setChat(event.target.value);
-  }
+  };
 
-  const handleStartDictation = (): void => {
-    if (!recognitionRef.current || isSubmitting) {
-      return;
-    }
-
-    try {
-      finalTranscriptRef.current = "";
-      transcriptRef.current = "";
-      shouldInsertTranscriptOnEndRef.current = false;
-      setDictationError(null);
-      recognitionRef.current.start();
-      setIsListening(true);
-    } 
-    catch {
-      setDictationError("Unable to start dictation. Please allow microphone access and try again.");
-      setIsListening(false);
-    }
-  }
-
-  const handleStopDictation = (): void => {
-    if (!recognitionRef.current) {
-      return;
-    }
-
-    try {
-      shouldInsertTranscriptOnEndRef.current = true;
-      recognitionRef.current.stop();
-    } catch {
-      // no-op
-    }
-    setIsListening(false);
-  }
-
-  const handleChatBoxFocus = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+  const handleChatBoxFocus = (): void => {
     setIsChatBoxFocused(true);
-  }
+  };
 
-  const handleChatBoxBlur = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+  const handleChatBoxBlur = (): void => {
     setIsChatBoxFocused(false);
-  }
-  
+  };
+
   const handleChatKeyDown = async (event: React.KeyboardEvent<HTMLTextAreaElement>): Promise<void> => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       if (chat.trim() && !isSubmitting) {
         await handleChatSubmit();
       }
     }
-  }
-
-  const openVerdictFlap = (messageId: string, event?: React.SyntheticEvent<HTMLElement>): void => {
-    if (event && chatHistoryContainerRef.current) {
-      const chipRect = event.currentTarget.getBoundingClientRect();
-      const containerRect = chatHistoryContainerRef.current.getBoundingClientRect();
-      const estimatedFlapHeight = 180;
-
-      const availableAbove = chipRect.top - containerRect.top;
-      const availableBelow = containerRect.bottom - chipRect.bottom;
-
-      if (availableAbove < estimatedFlapHeight && availableBelow >= estimatedFlapHeight) {
-        setActiveVerdictPlacement("down");
-      } else {
-        setActiveVerdictPlacement("up");
-      }
-    }
-    setActiveVerdictId(messageId);
   };
 
-  const closeVerdictFlap = (): void => {
-    setActiveVerdictId(null);
-  };
-
-  const renderTextWithBasicFormatting = (text: string): React.ReactNode => {
-    const renderInlineFormatting = (line: string): React.ReactNode[] => {
-      const nodes: React.ReactNode[] = [];
-      const pattern = /(\*\*[^*]+\*\*|__[^_]+__|\*[^*\n]+\*|_[^_\n]+_)/g;
-
-      let lastIndex = 0;
-      let match: RegExpExecArray | null;
-      while ((match = pattern.exec(line)) !== null) {
-        if (match.index > lastIndex) {
-          nodes.push(line.slice(lastIndex, match.index));
-        }
-
-        const token = match[0];
-        if ((token.startsWith("**") && token.endsWith("**")) || (token.startsWith("__") && token.endsWith("__"))) {
-          nodes.push(<strong key={`b-${match.index}`}>{token.slice(2, -2)}</strong>);
-        } 
-        else if ((token.startsWith("*") && token.endsWith("*")) || (token.startsWith("_") && token.endsWith("_"))) {
-          nodes.push(<em key={`i-${match.index}`}>{token.slice(1, -1)}</em>);
-        } 
-        else {
-          nodes.push(token);
-        }
-
-        lastIndex = pattern.lastIndex;
-      }
-
-      if (lastIndex < line.length) {
-        nodes.push(line.slice(lastIndex));
-      }
-
-      return nodes;
-    };
-
-    const lines = (text || "").split('\n');
-    const blocks: React.ReactNode[] = [];
-    let listItems: string[] = [];
-
-    const flushList = (): void => {
-      if (listItems.length === 0) {
-        return;
-      }
-      blocks.push(
-        <ul key={`ul-${blocks.length}`}>
-          {listItems.map((item, idx) => (
-            <li key={`li-${idx}`}>{renderInlineFormatting(item)}</li>
-          ))}
-        </ul>
-      );
-      listItems = [];
-    };
-
-    lines.forEach((line, index) => {
-      const listMatch = line.match(/^\s*[-*]\s+(.+)$/);
-      if (listMatch) {
-        listItems.push(listMatch[1]);
-        return;
-      }
-
-      flushList();
-
-      blocks.push(
-        <React.Fragment key={`line-${index}`}>
-          {renderInlineFormatting(line)}
-          <br />
-        </React.Fragment>
-      );
-    });
-
-    flushList();
-
-    return blocks;
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   const canSubmit = chat.trim().length > 0 && !isSubmitting;
@@ -583,181 +257,32 @@ export const ChatContent: React.FC = () => {
       }
       <div className={styles.ChatContentHolder}>
         {location.pathname.indexOf("/chatcontent/") !== -1 &&
-          <div className={showChatNavigation ? [styles.sidebar,styles.open].join(' ') : [styles.sidebar, styles.close].join(' ')}><ChatNavigation /></div>
+          <div className={showChatNavigation ? [styles.sidebar, styles.open].join(" ") : [styles.sidebar, styles.close].join(" ")}><ChatNavigation /></div>
         }
         <div className={styles.ChatContent}>
-          <div className={styles.chatMessagesContainer} ref={chatHistoryContainerRef}>
-            {loading && <Spinner className={[styles.spinner, styles.spinnerBottom].join(' ')} />}
-            {!loading && chatMessages.length > 0 && (
-              <>
-                {
-                  chatMessages.map((message, index) => {
-                    const mainContent: string = message.content;
-                    const citations: CitationModel[] = message.citations || [];
-                    const uniqueCitations: CitationModel[] = citations.reduce((acc: CitationModel[], current: CitationModel) => {
-                      if (!current.sourceUrl) {
-                        return acc;
-                      }
-
-                      const exists = acc.some((c) => c.sourceUrl === current.sourceUrl);
-                      if (!exists) {
-                        acc.push(current);
-                      }
-
-                      return acc;
-                    }, []);
-                    return(
-                      <React.Fragment key={message.id}>
-                            <div className={styles.card} role={message.role}>
-                              <div className={styles.container}>
-                                <p>{renderTextWithBasicFormatting(mainContent)}</p>
-                                {message.role === "assistant" && message.content === "" && (
-                                  <Spinner className={[styles.spinner, styles.spinnerCentered].join(' ')} />
-                                )}
-                                {message.role === "assistant" && uniqueCitations.length > 0 && (
-                                  <div className={styles.citation}>
-                                    <ul className={styles.citationList}>
-                                    {uniqueCitations.map((citation: CitationModel, index) => {
-                                      if (!citation.sourceUrl || citation.sourceUrl.indexOf("N/A") >= 0) {
-                                        return null; // Skip rendering this citation if the condition is met
-                                      }
-                                      return(
-                                        <li key={index} className={styles.citationItem}>
-                                          <a href={citation.sourceUrl} target='_blank' data-interception="off" rel='noopener noreferrer'>
-                                            {citation.title}
-                                          </a>
-                                        </li>
-                                      );
-                                    })}
-                                    </ul>
-                                  </div>
-                                )}
-                                {message.role === "assistant" && message.guardrail && (
-                                  <div className={styles.guardrailMeta}>
-                                    <span
-                                      className={`${styles.verdictBadge} ${message.guardrail.verdict === "grounded" ? styles.verdictGrounded : message.guardrail.verdict === "partially_grounded" ? styles.verdictPartial : styles.verdictNotGrounded}`}
-                                      role="button"
-                                      tabIndex={0}
-                                      onMouseEnter={(e) => openVerdictFlap(message.id, e)}
-                                      onMouseLeave={closeVerdictFlap}
-                                      onFocus={(e) => openVerdictFlap(message.id, e)}
-                                      onBlur={closeVerdictFlap}
-                                      onClick={(e) => {
-                                        if (activeVerdictId === message.id) {
-                                          setActiveVerdictId(null);
-                                        } else {
-                                          openVerdictFlap(message.id, e);
-                                        }
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                          e.preventDefault();
-                                          setActiveVerdictId(activeVerdictId === message.id ? null : message.id);
-                                        }
-                                      }}
-                                    >
-                                      Verdict: {message.guardrail.verdict}
-                                    </span>
-                                    <span className={styles.confidenceChip}>
-                                      Confidence: {message.guardrail.confidence}
-                                    </span>
-                                    {activeVerdictId === message.id && (
-                                      <div
-                                        className={`${styles.guardrailFlap} ${activeVerdictPlacement === "down" ? styles.guardrailFlapDown : styles.guardrailFlapUp}`}
-                                        onMouseEnter={(e) => openVerdictFlap(message.id, e)}
-                                        onMouseLeave={closeVerdictFlap}
-                                      >
-                                        {Array.isArray(message.guardrail.issues) && message.guardrail.issues.length > 0 ? (
-                                          <ul className={styles.guardrailIssueList}>
-                                            {message.guardrail.issues.map((issue, issueIndex) => {
-                                              const issueObj = issue as { claim?: string; missing_info?: string };
-                                              return (
-                                                <li key={issueIndex} className={styles.guardrailIssueItem}>
-                                                  {issueObj.claim || "Unsupported claim"}
-                                                  {issueObj.missing_info ? ` - ${issueObj.missing_info}` : ""}
-                                                </li>
-                                              );
-                                            })}
-                                          </ul>
-                                        ) : (
-                                          <div className={styles.guardrailIssueItem}>
-                                            All claims are supported by retrieved context.
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {message.role === "assistant" && index === chatMessages.length - 1 && assistantStatus && (
-                                  <div className={styles.streamStatus}>Status: {assistantStatus}</div>
-                                )}
-                              </div>
-                            </div>
-                      </React.Fragment>
-                    )
-                  })
-                }
-              </>
-            )}
-            {!loading && chatMessages.length === 0 && (
-              <>
-                <ChatIntroduction />
-              </>
-            )}
-          </div>
-          <div className={isChatBoxFocused?[styles.searchBoxContainer,styles.searchBoxIsFocused].join(' '):styles.searchBoxContainer}>
-            <Textarea
-              value={chat}
-              id="chatBoxArea"
-              className={styles.searchBox}
-              // style={{ width: '100%', overflowX: 'hidden', overflowY: 'hidden', border:'0px solid transparent !important' }}
-              ref={textareaRef}
-              placeholder="Type a message"
-              onChange={handleChatChange}
-              onKeyDown={handleChatKeyDown}
-              onFocus={handleChatBoxFocus}
-              disabled={isSubmitting}
-              onBlur={handleChatBoxBlur}
-            />
-            {isDictationSupported && (
-              <div className={styles.dictationControls}>
-                {!isListening && (
-                  <div
-                    className={isSubmitting ? [styles.dictationIcon, styles.sendIconDisabled].join(' ') : styles.dictationIcon}
-                    onClick={!isSubmitting ? handleStartDictation : undefined}
-                    data-tooltip="Dictate"
-                    aria-label="Dictate"
-                    role="button"
-                    aria-disabled={isSubmitting}
-                  >
-                    <Mic24Regular />
-                  </div>
-                )}
-                {isListening && (
-                  <div
-                    className={[styles.dictationIcon, styles.dictationIconStop].join(" ")}
-                    onClick={handleStopDictation}
-                    aria-label="Stop dictation"
-                    role="button"
-                  >
-                    <Stop24Filled />
-                  </div>
-                )}
-              </div>
-            )}
-            <div
-              className={canSubmit ? styles.sendIcon : [styles.sendIcon, styles.sendIconDisabled].join(' ')}
-              onClick={canSubmit ? handleChatSubmit : undefined}
-              aria-disabled={!canSubmit}
-            >
-              <Send24Filled />
-            </div>
-          </div>
-          {dictationError && (
-            <div className={styles.dictationError}>
-              {dictationError}
-            </div>
-          )}
+          <ChatMessageList
+            loading={loading}
+            chatMessages={chatMessages}
+            assistantStatus={assistantStatus}
+            chatHistoryContainerRef={chatHistoryContainerRef}
+          />
+          <ChatInputBar
+            chat={chat}
+            isChatBoxFocused={isChatBoxFocused}
+            isSubmitting={isSubmitting}
+            canSubmit={canSubmit}
+            isDictationSupported={isDictationSupported}
+            isListening={isListening}
+            dictationError={dictationError}
+            textareaRef={textareaRef}
+            onChatChange={handleChatChange}
+            onChatKeyDown={handleChatKeyDown}
+            onChatBoxFocus={handleChatBoxFocus}
+            onChatBoxBlur={handleChatBoxBlur}
+            onSubmit={handleChatSubmit}
+            onStartDictation={startDictation}
+            onStopDictation={stopDictation}
+          />
         </div>
       </div>
     </div>
