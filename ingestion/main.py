@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi import Request
+from fastapi.responses import JSONResponse
 import json
 from helpers.blob import get_blobs
 from helpers.chunking import generate_chunks_for_files
@@ -24,29 +25,34 @@ def index():
 
 @app.post("/ingest")
 async def ingest():
+    try:
+        print("Getting blob contents....")
+        blob_inputs = get_blobs()
 
-    print("Getting blob contents....")
-    blob_inputs = get_blobs()
+        print("Generating chunks....")
+        chunks = generate_chunks_for_files(blob_inputs)
+        
+        print("Generating embeddings....")
+        chunks_with_embedding = add_embeddings_to_chunks(chunks)
+        
+        print("Checking existing chunks in search index....")
+        source_urls = get_unique_source_urls(chunks_with_embedding)
+        keys = fetch_keys_for_existing_source_urls(source_urls)
 
-    print("Generating chunks....")
-    chunks = generate_chunks_for_files(blob_inputs)
-    
-    print("Generating embeddings....")
-    chunks_with_embedding = add_embeddings_to_chunks(chunks)
-    
-    print("Checking existing chunks in search index....")
-    source_urls = get_unique_source_urls(chunks_with_embedding)
-    keys = fetch_keys_for_existing_source_urls(source_urls)
-
-    if keys:
-        print("Deleting existing chunks from search index....")
-        delete_keys_in_batches(keys)
-    
-    print("Uploading all chunks into search index....")
-    ingestion_response = upload_chunks_in_batches(chunks_with_embedding)
-    print(ingestion_response)
-    
-    return ingestion_response
+        if keys:
+            print("Deleting existing chunks from search index....")
+            delete_keys_in_batches(keys)
+        
+        print("Uploading all chunks into search index....")
+        ingestion_response = upload_chunks_in_batches(chunks_with_embedding)
+        print(ingestion_response)
+        
+        return ingestion_response
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "failed to ingest documents", "details": str(e)}
+        )
 
 @app.post("/create-index")
 async def create_index():
@@ -54,9 +60,18 @@ async def create_index():
         response = await create_search_index()
         return response
     except Exception as e:
-        return {str(e)}
+        return JSONResponse(
+            status_code=500,
+            content={"error": "failed to create search index", "details": str(e)}
+        )
 
 @app.post("/clear-index")
 async def clear_index():
-    response = delete_all_chunks_from_index()
-    return response
+    try:
+        response = delete_all_chunks_from_index()
+        return response
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "failed to clear search index", "details": str(e)}
+        )
