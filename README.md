@@ -80,8 +80,8 @@ It combines:
 
 ## Architecture diagrams
 
-- [Architecture flow](./diagrams/architecture-flow.md)
-- [Sequence diagram](./diagrams/sequence-diagram.md)
+![Architecture flow](./diagrams/architecture-flow.png)
+![Sequence diagram](./diagrams/sequence-diagram.png)
 
 ## Prerequisites
 
