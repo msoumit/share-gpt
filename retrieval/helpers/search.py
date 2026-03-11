@@ -12,7 +12,7 @@ INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX")
 
 VECTOR_FIELD = "embedding"
 SELECT_FIELDS = ["id", "kind", "title", "source_url", "chunk", "chunk_id", "blob_url"]
-SEMANTIC_CONFIG_NAME = "index-share-gpt-semantic-configuration"
+SEMANTIC_CONFIG_NAME = f"{INDEX_NAME}-semantic-configuration"
 TOP_K = 5
 
 search_client = SearchClient(

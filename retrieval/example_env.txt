@@ -1,0 +1,13 @@
+AZURE_SEARCH_ENDPOINT=<your_search_endpoint>
+AZURE_SEARCH_ADMIN_KEY=<your_search_key>
+AZURE_SEARCH_INDEX=<your_index_name>
+
+AZURE_OPENAI_ENDPOINT=<your_openai_endpoint>
+AZURE_OPENAI_API_KEY=<your_openai_key>
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=<your_deployed_model_for_embedding>
+AZURE_OPENAI_MODEL_DEPLOYMENT=<your_deployed_model_for_chat_completion>
+
+AZURE_COSMOS_ENDPOINT=<your_cosmos_endpoint>
+AZURE_COSMOS_KEY=<your_cosmos_key>
+AZURE_COSMOS_DATABASE=<your_cosmos_database_name>
+AZURE_COSMOS_CONTAINER=<your_cosmos_container_name>
