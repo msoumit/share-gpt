@@ -80,7 +80,10 @@ It combines:
 
 ## Architecture diagrams
 
+- Architecture Flow
 ![Architecture flow](./diagrams/architecture-flow.png)
+
+- Sequence Diagram
 ![Sequence diagram](./diagrams/sequence-diagram.png)
 
 ## Prerequisites
