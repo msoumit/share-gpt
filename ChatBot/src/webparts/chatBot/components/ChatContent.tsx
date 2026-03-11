@@ -120,7 +120,7 @@ export const ChatContent: React.FC = () => {
     const el = chatHistoryContainerRef.current;
     if (!el) return;
 
-    const doScroll = (behavior: "auto" | "smooth") => {
+    const doScroll = (behavior: "auto" | "smooth"): void => {
       requestAnimationFrame(() => {
         setTimeout(() => {
           try {
