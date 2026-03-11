@@ -78,6 +78,11 @@ It combines:
 - `demo-files/`
 - `power-automate-export/ShareGPT_1_0_0_1_managed.zip`
 
+## Architecture diagrams
+
+- [Architecture flow](./diagrams/architecture-flow.md)
+- [Sequence diagram](./diagrams/sequence-diagram.md)
+
 ## Prerequisites
 
 ### Local tools
