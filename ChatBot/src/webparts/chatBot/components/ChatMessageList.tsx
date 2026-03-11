@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Spinner } from "@fluentui/react-components";
 import { ChatMessageModel, CitationModel } from "../service/model";
+import { getUniqueCitations, isValidCitationSource } from "../service/common";
 import styles from "./ChatBot.module.scss";
 import { ChatIntroduction } from "./ChatIntroduction";
 import { renderTextWithBasicFormatting } from "./messageFormat";
@@ -12,21 +13,6 @@ interface ChatMessageListProps {
   assistantStatus: string;
   chatHistoryContainerRef: React.RefObject<HTMLDivElement>;
 }
-
-const getUniqueCitations = (citations: CitationModel[]): CitationModel[] => {
-  return citations.reduce((acc: CitationModel[], current: CitationModel) => {
-    if (!current.sourceUrl) {
-      return acc;
-    }
-
-    const exists = acc.some((c) => c.sourceUrl === current.sourceUrl);
-    if (!exists) {
-      acc.push(current);
-    }
-
-    return acc;
-  }, []);
-};
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   loading,
@@ -55,7 +41,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
                       <div className={styles.citation}>
                         <ul className={styles.citationList}>
                           {uniqueCitations.map((citation: CitationModel, citationIndex) => {
-                            if (!citation.sourceUrl || citation.sourceUrl.indexOf("N/A") >= 0) {
+                            if (!isValidCitationSource(citation.sourceUrl)) {
                               return null;
                             }
                             return (
@@ -90,4 +76,3 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     </div>
   );
 };
-
