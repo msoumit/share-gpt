@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useState } from 'react';
 import styles from './ChatBot.module.scss';
 import { ChatNavigation } from './ChatNavigation';
 import { GlobalActions } from './GlobalActions';
@@ -9,11 +8,6 @@ import { ChatIntroduction } from './ChatIntroduction';
 export const ChatContainer: React.FC = () => {
 
   const { showChatNavigation } = useChatThreadContext();
-  const [error, setError] = useState<string | null>(null);
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
 
   return (
     <>
