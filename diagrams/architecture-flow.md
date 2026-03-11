@@ -1,5 +1,3 @@
-# ShareGPT Architecture Flow
-
 %%{init: {"theme":"base","themeVariables":{
 "primaryColor":"#0B3D91",
 "primaryTextColor":"#ffffff",
