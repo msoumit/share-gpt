@@ -1,0 +1,56 @@
+sequenceDiagram
+    autonumber
+    actor U as End User
+    participant SPFX as SPFx ShareGPT ChatBot
+    participant RET as FastAPI Retrieval API<br/>POST /get-streamed-response
+    participant SRCH as Azure AI Search<br/>Shared Index
+    participant OAI as Azure OpenAI<br/>Chat + Embedding
+    participant GR as Guardrail Validator<br/>Claim Grounding
+    participant COS as Azure Cosmos DB<br/>Threads + Messages
+
+    rect rgb(247, 247, 210)
+        note over U,COS: Retrieval and Chat Runtime Path
+        U->>SPFX: Ask question
+        SPFX->>RET: POST /get-streamed-response (chat payload)
+        RET-->>SPFX: SSE status: retrieving documents
+        RET->>OAI: Generate query embedding
+        RET->>SRCH: Hybrid semantic + vector search (top-k)
+        SRCH-->>RET: Chunks + metadata
+        RET-->>SPFX: SSE status: generating answer
+        RET->>OAI: Generate grounded JSON answer
+        OAI-->>RET: Streaming answer chunks
+        RET-->>SPFX: SSE answer_delta / citation_delta
+        RET-->>SPFX: SSE answer_ready
+        RET-->>SPFX: SSE status: validating response
+        RET->>GR: Validate claims against retrieved context
+        GR-->>RET: Guardrail verdict + confidence + issues
+        RET->>COS: Persist user and assistant messages
+        RET-->>SPFX: SSE final (answer + citations + guardrail)
+        RET-->>SPFX: SSE done
+        SPFX-->>U: Render final grounded response
+    end
+
+    participant SPLIB as SharePoint Document Library
+    participant PAF as Power Automate Scheduled Flow
+    participant BLOB as Azure Blob Storage<br/>Staging Container
+    participant NG as ngrok Tunnel to Ingestion API
+    participant ING as FastAPI Ingestion API<br/>POST /ingest
+    participant DI as Azure Document Intelligence
+
+    rect rgb(220, 245, 240)
+        note over SPLIB,SRCH: Background Ingestion Path (Scheduled)
+        PAF->>SPLIB: List recently modified files
+        SPLIB-->>PAF: File references + metadata
+        loop For each file
+            PAF->>SPLIB: Get file content
+            PAF->>BLOB: Upload blob
+            PAF->>BLOB: Set source_url metadata
+        end
+        PAF->>NG: Call /ingest
+        NG->>ING: Forward POST /ingest
+        ING->>BLOB: Read staged files
+        ING->>DI: Parse layout + tables
+        ING->>OAI: Table summary + chunk embeddings
+        ING->>SRCH: Upsert chunks to shared index
+        PAF->>BLOB: Delete staged blobs after success
+    end

@@ -1,0 +1,66 @@
+flowchart LR
+  %% =========================
+  %% Ingestion Path
+  %% =========================
+  subgraph ING["Ingestion Path - Power Automate and FastAPI"]
+    direction LR
+    SP["SharePoint Document Library"]
+    PA["Power Automate Scheduled Flow"]
+    NG["ngrok Tunnel<br/>to Ingestion API"]
+    BLOB["Azure Blob Storage<br/>Staging Container"]
+    INGAPI["FastAPI Ingestion API<br/>POST /ingest"]
+    DI["Azure Document Intelligence<br/>Layout + Table Extraction"]
+    CHUNK["LangChain Chunking<br/>+ Azure OpenAI Embeddings"]
+    IDX["Azure AI Search Shared Index<br/>Hybrid Semantic + Vector"]
+
+    SP --> PA
+    PA -->|"Call /ingest"| NG
+    PA -->|"Upload files + set source_url metadata"| BLOB
+    PA -.->|"After ingestion success"| BLOB
+    NG --> INGAPI
+    BLOB --> INGAPI
+    INGAPI --> DI --> CHUNK --> IDX
+  end
+
+  %% =========================
+  %% Retrieval + Chat Path
+  %% =========================
+  subgraph RET["Retrieval and Chat Path - FastAPI and SPFx"]
+    direction LR
+    U["End User"]
+    SPFX["SPFx ShareGPT ChatBot"]
+    RETAPI["FastAPI Retrieval API<br/>POST /get-streamed-response"]
+    OAI["Azure OpenAI<br/>Chat + Embedding"]
+    GR["Reasoning Guardrail Validator<br/>Claim decomposition + Grounding checks<br/>Response JSON:<br/>answer + citations + guardrail verdict/confidence/issues"]
+    COS["Azure Cosmos DB<br/>Threads + Messages"]
+
+    U --> SPFX
+    SPFX --> RETAPI
+    RETAPI -->|"Hybrid search"| IDX
+    RETAPI -->|"Generate answer"| OAI
+    RETAPI -->|"Validate grounding"| GR
+    RETAPI -->|"Persist chat state"| COS
+    RETAPI -->|"SSE: status, answer_delta,<br/>citation_delta, final"| SPFX
+    SPFX --> U
+  end
+
+  %% =========================
+  %% Styling
+  %% =========================
+  classDef source fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a;
+  classDef orchestrator fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d;
+  classDef api fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+  classDef ai fill:#f3e8ff,stroke:#7e22ce,stroke-width:2px,color:#4c1d95;
+  classDef storage fill:#ecfeff,stroke:#0891b2,stroke-width:2px,color:#164e63;
+  classDef index fill:#e0f2fe,stroke:#0369a1,stroke-width:2px,color:#0c4a6e;
+  classDef ui fill:#ffe4e6,stroke:#e11d48,stroke-width:2px,color:#881337;
+  classDef validator fill:#ede9fe,stroke:#6d28d9,stroke-width:2px,color:#4c1d95;
+
+  class SP,U source;
+  class PA orchestrator;
+  class INGAPI,RETAPI api;
+  class DI,CHUNK,OAI ai;
+  class BLOB,COS storage;
+  class IDX index;
+  class SPFX ui;
+  class GR validator;
